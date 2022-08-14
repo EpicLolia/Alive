@@ -13,8 +13,8 @@ class UAliveAbilitySystemComponent;
 UCLASS()
 class ALIVE_API AAlivePlayerState : public APlayerState, public IAbilitySystemInterface
 {
-	GENERATED_UCLASS_BODY()
-	
+	GENERATED_BODY()
+
 public:
 	AAlivePlayerState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
