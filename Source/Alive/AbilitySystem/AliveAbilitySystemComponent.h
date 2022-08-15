@@ -17,5 +17,5 @@ class ALIVE_API UAliveAbilitySystemComponent : public UAbilitySystemComponent
 public:
 	UAliveAbilitySystemComponent();
 
-	bool bHasDefaultAbilities;
+	bool bHasCharacterAbilities;
 };

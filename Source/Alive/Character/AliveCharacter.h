@@ -11,7 +11,7 @@
 class UCameraComponent;
 class UAliveAbilitySystemComponent;
 
-UCLASS(config=Game)
+UCLASS(config=Game,Abstract)
 class AAliveCharacter : public ACharacter, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
@@ -19,49 +19,18 @@ class AAliveCharacter : public ACharacter, public IAbilitySystemInterface
 public:
 	AAliveCharacter();
 
-	/** Returns FirstPersonCameraComponent subobject **/
-	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
-
 protected:
-	virtual void BeginPlay() override;
-	// Server Only
-	virtual void PossessedBy(AController* NewController) override;
-	// Client Only
-	virtual void OnRep_PlayerState() override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
-private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FollowCamera;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FirstPersonCameraComponent;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Alive|Character", meta = (AllowPrivateAccess = "true"))
 	UAliveAbilitySystemComponent* AbilitySystemComponent;
 
-	void MoveForward(float Val);
-	void MoveRight(float Val);
-
 protected:
 	//Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Abilities")
-	TArray<TSubclassOf<class UAliveGameplayAbility>> DefaultAbilities;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Character")
+	TArray<TSubclassOf<class UAliveGameplayAbility>> CharacterAbilities;
 
-private:
-	void AddDefaultAbilities();
-	// TODO: RemoveAbilities
-
-	// Called from both SetupPlayerInputComponent and OnRep_PlayerState because of a potential race condition where the PlayerController might
-	// call ClientRestart which calls SetupPlayerInputComponent before the PlayerState is repped to the client so the PlayerState would be null in SetupPlayerInputComponent.
-	// Conversely, the PlayerState might be repped before the PlayerController calls ClientRestart so the Actor's InputComponent would be null in OnRep_PlayerState.
-	void BindAbilityInput();
-
-	// Only Bind Once
-	bool bHasBoundAbilityInput;
+	// 只能在服务器添加和移除ability
+	virtual void AddCharacterAbilities();
+	void RemoveCharacterAbilities();
 };

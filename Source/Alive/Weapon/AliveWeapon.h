@@ -16,6 +16,11 @@ class ALIVE_API AAliveWeapon : public AActor
 public:
 	AAliveWeapon();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// Pickup on touch
+	virtual void NotifyActorBeginOverlap(class AActor* Other) override;
+	
 	UPROPERTY(BlueprintAssignable, Category = "Alive|Weapon")
 	FWeaponAmmoChangedDelegate OnPrimaryClipAmmoChanged;
 
@@ -27,12 +32,6 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
-
-	
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	// Pickup on touch
-	virtual void NotifyActorBeginOverlap(class AActor* Other) override;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -51,4 +50,9 @@ protected:
 	int32 MaxPrimaryClipAmmo;
 	UFUNCTION()
 	virtual void OnRep_MaxPrimaryClipAmmo(int32 OldMaxPrimaryClipAmmo);
+
+	//Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Abilities")
+	TArray<TSubclassOf<class UAliveGameplayAbility>> CharacterAbilities;
+
 };

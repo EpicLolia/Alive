@@ -1,7 +1,7 @@
 ﻿#include "AliveAbilitySystemComponent.h"
 
 UAliveAbilitySystemComponent::UAliveAbilitySystemComponent()
-	:bHasDefaultAbilities(false)
+	:bHasCharacterAbilities(false)
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
