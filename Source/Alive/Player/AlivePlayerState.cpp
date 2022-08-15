@@ -6,10 +6,11 @@
 #include "AbilitySystem/Attributes/HealthSet.h"
 #include "AbilitySystem/Attributes/CombatSet.h"
 
-AAlivePlayerState::AAlivePlayerState(const FObjectInitializer& ObjectInitializer)
+//DEFINE_LOG_CATEGORY_STATIC(LogPlayerState, Log, All);
+
+AAlivePlayerState::AAlivePlayerState()
 {
-	AbilitySystemComponent = ObjectInitializer.CreateDefaultSubobject<UAliveAbilitySystemComponent>
-		(this, TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent = CreateDefaultSubobject<UAliveAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 

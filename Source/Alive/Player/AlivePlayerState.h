@@ -16,7 +16,7 @@ class ALIVE_API AAlivePlayerState : public APlayerState, public IAbilitySystemIn
 	GENERATED_BODY()
 
 public:
-	AAlivePlayerState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	AAlivePlayerState();
 
 	UFUNCTION(BlueprintCallable, Category = "Alive|PlayerState")
 	AAlivePlayerController* GetAlivePlayerController() const;

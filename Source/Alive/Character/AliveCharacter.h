@@ -42,7 +42,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 
-	UPROPERTY(VisibleAnywhere, Category = "Alive|Character")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Alive|Character", meta = (AllowPrivateAccess = "true"))
 	UAliveAbilitySystemComponent* AbilitySystemComponent;
 
 	void MoveForward(float Val);

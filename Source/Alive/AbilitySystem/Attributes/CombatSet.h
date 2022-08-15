@@ -10,17 +10,17 @@
 /**
  * UCombatSet
  * 
-*	Class that defines attributes that are necessary for applying damage or healing.
+ *	Class that defines attributes that are necessary for applying damage or healing.
  *	Attribute examples include: damage, healing, attack power, and shield penetrations.
  */
 UCLASS(BlueprintType)
-class UCombatSet:public UAliveAttributeSet
+class UCombatSet : public UAliveAttributeSet
 {
 	GENERATED_BODY()
 
 public:
 	UCombatSet();
-	
+
 	ATTRIBUTE_ACCESSORS(UCombatSet, Attack);
 
 protected:
@@ -29,7 +29,7 @@ protected:
 
 private:
 	// The Attack to apply in the damage execution.
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Attack, Category = "Aries|Combat", Meta = (AllowPrivateAccess = true))
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Attack, Category = "Alive|Combat",
+		Meta = (AllowPrivateAccess = true))
 	FGameplayAttributeData Attack;
-
 };

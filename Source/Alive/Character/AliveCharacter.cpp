@@ -144,10 +144,12 @@ void AAliveCharacter::AddDefaultAbilities()
 {
 	if (AbilitySystemComponent && !AbilitySystemComponent->bHasDefaultAbilities)
 	{
-		for (TSubclassOf<UAliveGameplayAbility>& StartupAbility : DefaultAbilities)
+		for (TSubclassOf<UAliveGameplayAbility>& Ability : DefaultAbilities)
 		{
 			AbilitySystemComponent->GiveAbility(
-				FGameplayAbilitySpec(StartupAbility));
+				FGameplayAbilitySpec(Ability, 1,
+									 static_cast<int32>(Ability.GetDefaultObject()->AbilityInputID),
+									 this));
 		}
 
 		AbilitySystemComponent->bHasDefaultAbilities = true;
@@ -156,7 +158,7 @@ void AAliveCharacter::AddDefaultAbilities()
 
 void AAliveCharacter::BindAbilityInput()
 {
-	if (!bHasBoundAbilityInput && AbilitySystemComponent && IsValid(InputComponent))
+	if (!bHasBoundAbilityInput && IsValid(AbilitySystemComponent) && IsValid(InputComponent))
 	{
 		AbilitySystemComponent->BindAbilityActivationToInputComponent(InputComponent,FGameplayAbilityInputBinds(
 			FString("ConfirmTarget"),
