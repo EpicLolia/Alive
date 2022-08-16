@@ -25,12 +25,12 @@
 	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 
 // Delegate used to broadcast attribute events.
-DECLARE_MULTICAST_DELEGATE_FourParams(FAriesAttributeEvent, AActor* /*EffectInstigator*/, AActor* /*EffectCauser*/, const FGameplayEffectSpec& /*EffectSpec*/, float /*EffectMagnitude*/);
+DECLARE_MULTICAST_DELEGATE_FourParams(FAliveAttributeEvent, AActor* /*EffectInstigator*/, AActor* /*EffectCauser*/, const FGameplayEffectSpec& /*EffectSpec*/, float /*EffectMagnitude*/);
 
 class UAliveAbilitySystemComponent;
 
 /**
- * UAriesAttributeSet
+ * UAliveAttributeSet
  *
  *	Base attribute set class for the project.
  */
@@ -44,5 +44,5 @@ public:
 
 	UWorld* GetWorld() const override;
 
-	UAliveAbilitySystemComponent* GetAriesAbilitySystemComponent() const;
+	UAliveAbilitySystemComponent* GetAliveAbilitySystemComponent() const;
 };

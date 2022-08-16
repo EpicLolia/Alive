@@ -3,6 +3,8 @@
 #include "AlivePlayerState.h"
 #include "AlivePlayerController.h"
 #include "AbilitySystem/AliveAbilitySystemComponent.h"
+// Attribute Set
+#include "AbilitySystem/Attributes/AmmoSet.h"
 #include "AbilitySystem/Attributes/HealthSet.h"
 #include "AbilitySystem/Attributes/CombatSet.h"
 
@@ -17,6 +19,7 @@ AAlivePlayerState::AAlivePlayerState()
 	// 在构造函数中创建AttributeSet将会自动注册到ASC中
 	CreateDefaultSubobject<UHealthSet>(TEXT("HealthSet"));
 	CreateDefaultSubobject<UCombatSet>(TEXT("CombatSet"));
+	CreateDefaultSubobject<UAmmoSet>(TEXT("AmmoSet"));
 
 	// AbilitySystemComponent needs to be updated at a high frequency.
 	NetUpdateFrequency = 100.0f;

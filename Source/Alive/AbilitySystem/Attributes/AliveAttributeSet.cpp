@@ -15,7 +15,7 @@ UWorld* UAliveAttributeSet::GetWorld() const
 	return Outer->GetWorld();
 }
 
-UAliveAbilitySystemComponent* UAliveAttributeSet::GetAriesAbilitySystemComponent() const
+UAliveAbilitySystemComponent* UAliveAttributeSet::GetAliveAbilitySystemComponent() const
 {
 	return Cast<UAliveAbilitySystemComponent>(GetOwningAbilitySystemComponent());
 }

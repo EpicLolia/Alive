@@ -8,7 +8,7 @@
 #include "AliveGameplayAbility.generated.h"
 
 /**
- * 
+ * The base GameplayAblity class of this project.
  */
 UCLASS()
 class ALIVE_API UAliveGameplayAbility : public UGameplayAbility
