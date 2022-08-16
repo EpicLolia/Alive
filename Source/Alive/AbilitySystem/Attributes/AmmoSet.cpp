@@ -6,8 +6,8 @@
 
 UAmmoSet::UAmmoSet()
 {
-	//RifleAmmoTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.Rifle"));
-	//PistolAmmoTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.Pistol"));
+	RifleAmmoTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.Rifle"));
+	PistolAmmoTag = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.Pistol"));
 }
 
 void UAmmoSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
