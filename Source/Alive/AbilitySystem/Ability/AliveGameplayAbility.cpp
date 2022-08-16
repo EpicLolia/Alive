@@ -9,9 +9,15 @@ UAliveGameplayAbility::UAliveGameplayAbility()
     
 }
 
-void UAliveGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
-                                            const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
-                                            const FGameplayEventData* TriggerEventData)
+bool UAliveGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
 {
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+	return Super::CheckCost(Handle, ActorInfo, OptionalRelevantTags) && CheckAdditionalCost(Handle, *ActorInfo);
+}
+
+void UAliveGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	ApplyAdditionalCost(Handle, *ActorInfo, ActivationInfo);
+	Super::ApplyCost(Handle, ActorInfo, ActivationInfo);
 }
