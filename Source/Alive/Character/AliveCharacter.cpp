@@ -11,6 +11,7 @@
 #include "GameFramework/InputSettings.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/AlivePlayerState.h"
+#include "Weapon/AliveWeapon.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogAliveChar, Warning, All);
 
@@ -22,6 +23,19 @@ AAliveCharacter::AAliveCharacter()
 UAbilitySystemComponent* AAliveCharacter::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
+}
+
+void AAliveCharacter::SetCurrentWeapon(AAliveWeapon* Weapon)
+{
+	if(Weapon)
+	{
+		if(CurrentWeapon)
+		{
+			CurrentWeapon->UnEquip();
+		}
+		CurrentWeapon = Weapon;
+		CurrentWeapon->Equip();
+	}
 }
 
 void AAliveCharacter::AddCharacterAbilities()

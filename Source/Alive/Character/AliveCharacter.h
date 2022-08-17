@@ -10,6 +10,7 @@
 
 class UCameraComponent;
 class UAliveAbilitySystemComponent;
+class AAliveWeapon;
 
 UCLASS(config=Game,Abstract)
 class AAliveCharacter : public ACharacter, public IAbilitySystemInterface
@@ -19,18 +20,25 @@ class AAliveCharacter : public ACharacter, public IAbilitySystemInterface
 public:
 	AAliveCharacter();
 
-protected:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	AAliveWeapon* GetCurrentWeapon()const{ return CurrentWeapon; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetCurrentWeapon(AAliveWeapon* Weapon);
+	
+protected:
+	// Only add or remove ability on server
+	virtual void AddCharacterAbilities();
+	void RemoveCharacterAbilities();
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Alive|Character", meta = (AllowPrivateAccess = "true"))
 	UAliveAbilitySystemComponent* AbilitySystemComponent;
-
-protected:
-	//Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
+	
+	// Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Character")
 	TArray<TSubclassOf<class UAliveGameplayAbility>> CharacterAbilities;
-
-	// 只能在服务器添加和移除ability
-	virtual void AddCharacterAbilities();
-	void RemoveCharacterAbilities();
+	
+	UPROPERTY()
+	AAliveWeapon* CurrentWeapon;
 };
