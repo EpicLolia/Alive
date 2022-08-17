@@ -35,6 +35,7 @@ AAliveWeapon::AAliveWeapon()
 	WeaponMesh->SetVisibility(true, true);
 	WeaponMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
 
+	DefaultFireMode = FGameplayTag::RequestGameplayTag(FName("Weapon.FireMode.None"));
 	FireMode = FGameplayTag::RequestGameplayTag("Weapon.FireMode.None");
 	WeaponIsFiringTag = FGameplayTag::RequestGameplayTag("Weapon.IsFiring");
 }
@@ -50,7 +51,10 @@ void AAliveWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AAliveWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
 {
 	Super::PreReplication(ChangedPropertyTracker);
-
+	
+	// Prevent the gun from replicating back the ammo account and clobbering the local ammo amount during automatic fire.
+	// Essentially doing local prediction here
+	
 	DOREPLIFETIME_ACTIVE_OVERRIDE(AAliveWeapon, PrimaryClipAmmo,
 	                              (IsValid(AbilitySystemComponent) && !AbilitySystemComponent->HasMatchingGameplayTag(
 		                              WeaponIsFiringTag)));
@@ -71,7 +75,8 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 		// Called when added to inventory
 		AbilitySystemComponent = Cast<UAliveAbilitySystemComponent>(OwningCharacter->GetAbilitySystemComponent());
 		SetOwner(InOwningCharacter);
-		AttachToComponent(OwningCharacter->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform,
+		                  OwningCharacter->GetWeaponSocket());
 		CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 		// Hide if not equip
@@ -88,6 +93,11 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 		SetOwner(nullptr);
 		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	}
+}
+
+FVector AAliveWeapon::GetFirePointWorldLocation() const
+{
+	return WeaponMesh->GetSocketLocation(FirePointSocket);
 }
 
 void AAliveWeapon::Equip()
@@ -155,7 +165,7 @@ void AAliveWeapon::RemoveAbilitiesOnServer()
 	{
 		return;
 	}
-	
+
 	UAliveAbilitySystemComponent* ASC =
 		Cast<UAliveAbilitySystemComponent>(OwningCharacter->GetAbilitySystemComponent());
 	if (ASC)
@@ -168,7 +178,7 @@ void AAliveWeapon::RemoveAbilitiesOnServer()
 	}
 }
 
-int32 AAliveWeapon::GetWeaponAbilityLevel()
+int32 AAliveWeapon::GetWeaponAbilityLevel() const
 {
 	// TODO
 	return 1;
