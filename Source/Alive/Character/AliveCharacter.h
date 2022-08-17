@@ -38,10 +38,13 @@ protected:
 public:
 	AAliveWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category = "Alive|Character")
 	void SetCurrentWeapon(AAliveWeapon* Weapon);
 
 	FName GetWeaponSocket() const { return WeaponSocket; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Alive|Character")
+	FWeaponChangedDelegate OnWeaponChanged;
 protected:
 	UPROPERTY()
 	AAliveWeapon* CurrentWeapon;

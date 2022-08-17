@@ -4,13 +4,7 @@
 
 #include "AbilitySystem/Ability/AliveGameplayAbility.h"
 #include "AbilitySystem/AliveAbilitySystemComponent.h"
-#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/InputComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/InputSettings.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Player/AlivePlayerState.h"
 #include "Weapon/AliveWeapon.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogAliveChar, Warning, All);
@@ -33,8 +27,10 @@ void AAliveCharacter::SetCurrentWeapon(AAliveWeapon* Weapon)
 		{
 			CurrentWeapon->UnEquip();
 		}
+		Weapon->Equip();
 		CurrentWeapon = Weapon;
-		CurrentWeapon->Equip();
+		
+		OnWeaponChanged.Broadcast();
 	}
 }
 

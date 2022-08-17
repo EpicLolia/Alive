@@ -51,10 +51,10 @@ void AAliveWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 void AAliveWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
 {
 	Super::PreReplication(ChangedPropertyTracker);
-	
+
 	// Prevent the gun from replicating back the ammo account and clobbering the local ammo amount during automatic fire.
 	// Essentially doing local prediction here
-	
+
 	DOREPLIFETIME_ACTIVE_OVERRIDE(AAliveWeapon, PrimaryClipAmmo,
 	                              (IsValid(AbilitySystemComponent) && !AbilitySystemComponent->HasMatchingGameplayTag(
 		                              WeaponIsFiringTag)));
@@ -127,6 +127,21 @@ void AAliveWeapon::EndPlay(EEndPlayReason::Type EndPlayReason)
 	}
 
 	Super::EndPlay(EndPlayReason);
+}
+
+int32 AAliveWeapon::CheckPrimaryAmmoCost(int32 ExpectedCost) const
+{
+	return FMath::Min(ExpectedCost, PrimaryClipAmmo);
+}
+
+void AAliveWeapon::ApplyPrimaryAmmoCost(int32 ExpectedCost)
+{
+	PrimaryClipAmmo = FMath::Clamp(PrimaryClipAmmo - ExpectedCost, 0, MaxPrimaryClipAmmo);
+}
+
+void AAliveWeapon::ReloadPrimaryAmmo(int32 Ammo)
+{
+	PrimaryClipAmmo = FMath::Clamp(PrimaryClipAmmo + Ammo, 0, MaxPrimaryClipAmmo);
 }
 
 UAbilitySystemComponent* AAliveWeapon::GetAbilitySystemComponent() const

@@ -39,6 +39,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
 	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
 
+	// Return the expectation or the most bullets that can be fired.
+	UFUNCTION(BlueprintCallable,Category = "Alive|Weapon")
+	int32 CheckPrimaryAmmoCost(int32 ExpectedCost) const;
+
+	UFUNCTION(BlueprintCallable,Category = "Alive|Weapon")
+	void ApplyPrimaryAmmoCost(int32 ExpectedCost);
+
+	UFUNCTION(BlueprintCallable,Category = "Alive|Weapon")
+	void ReloadPrimaryAmmo(int32 Ammo);
+	
 	UPROPERTY(BlueprintAssignable, Category = "Alive|Weapon")
 	FWeaponAmmoChangedDelegate OnPrimaryClipAmmoChanged;
 
