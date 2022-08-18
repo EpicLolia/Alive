@@ -8,11 +8,11 @@
 
 #include "AliveCharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWeaponChangedDelegate);
-
+class AAliveWeapon;
 class UCameraComponent;
 class UAliveAbilitySystemComponent;
-class AAliveWeapon;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponChangedDelegate, AAliveWeapon*, CurrentWeapon);
 
 UCLASS(config=Game, Abstract)
 class AAliveCharacter : public ACharacter, public IAbilitySystemInterface
@@ -38,7 +38,7 @@ protected:
 public:
 	AAliveWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
 
-	UFUNCTION(BlueprintCallable, Category = "Alive|Character")
+	UFUNCTION(BlueprintCallable, Category = "Alive|Character") // TODO
 	void SetCurrentWeapon(AAliveWeapon* Weapon);
 
 	FName GetWeaponSocket() const { return WeaponSocket; }

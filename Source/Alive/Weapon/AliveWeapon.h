@@ -81,7 +81,7 @@ public:
 	AAliveCharacter* GetOwningCharacter() const { return OwningCharacter; }
 
 	// Owner Should have AbilitySystemComponent
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
+	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon") // TODO
 	void SetOwningCharacter(AAliveCharacter* InOwningCharacter);
 
 	// Called when the player equips this weapon

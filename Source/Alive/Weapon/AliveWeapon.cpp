@@ -131,7 +131,9 @@ void AAliveWeapon::EndPlay(EEndPlayReason::Type EndPlayReason)
 
 void AAliveWeapon::SetPrimaryClipAmmo(int32 Ammo)
 {
+	int32 OldPrimaryClipAmmo = PrimaryClipAmmo;
 	PrimaryClipAmmo = FMath::Clamp(Ammo, 0, MaxPrimaryClipAmmo);
+	OnPrimaryClipAmmoChanged.Broadcast(OldPrimaryClipAmmo, PrimaryClipAmmo);
 }
 
 UAbilitySystemComponent* AAliveWeapon::GetAbilitySystemComponent() const

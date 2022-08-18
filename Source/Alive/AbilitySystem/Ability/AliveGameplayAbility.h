@@ -28,7 +28,7 @@ public:
 	EAbilityInputID AbilityID = EAbilityInputID::None;
 	
 	virtual bool CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
-
+	
 	// Allows C++ and Blueprint abilities to override how cost is checked in case they don't use a GE like weapon ammo
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	bool CheckAdditionalCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo& ActorInfo) const;

@@ -30,7 +30,7 @@ void AAliveCharacter::SetCurrentWeapon(AAliveWeapon* Weapon)
 		Weapon->Equip();
 		CurrentWeapon = Weapon;
 		
-		OnWeaponChanged.Broadcast();
+		OnWeaponChanged.Broadcast(CurrentWeapon);
 	}
 }
 
