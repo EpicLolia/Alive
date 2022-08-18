@@ -35,8 +35,8 @@ AAliveWeapon::AAliveWeapon()
 	WeaponMesh->SetVisibility(true, true);
 	WeaponMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
 
-	DefaultFireMode = FGameplayTag::RequestGameplayTag(FName("Weapon.FireMode.None"));
-	FireMode = FGameplayTag::RequestGameplayTag("Weapon.FireMode.None");
+	DefaultFireMode = FGameplayTag::RequestGameplayTag(FName("Weapon.Rifle.FireMode.FullAuto"));
+	FireMode = FGameplayTag::RequestGameplayTag("Weapon.Rifle.FireMode.FullAuto");
 	WeaponIsFiringTag = FGameplayTag::RequestGameplayTag("Weapon.IsFiring");
 }
 
@@ -129,19 +129,9 @@ void AAliveWeapon::EndPlay(EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-int32 AAliveWeapon::CheckPrimaryAmmoCost(int32 ExpectedCost) const
+void AAliveWeapon::SetPrimaryClipAmmo(int32 Ammo)
 {
-	return FMath::Min(ExpectedCost, PrimaryClipAmmo);
-}
-
-void AAliveWeapon::ApplyPrimaryAmmoCost(int32 ExpectedCost)
-{
-	PrimaryClipAmmo = FMath::Clamp(PrimaryClipAmmo - ExpectedCost, 0, MaxPrimaryClipAmmo);
-}
-
-void AAliveWeapon::ReloadPrimaryAmmo(int32 Ammo)
-{
-	PrimaryClipAmmo = FMath::Clamp(PrimaryClipAmmo + Ammo, 0, MaxPrimaryClipAmmo);
+	PrimaryClipAmmo = FMath::Clamp(Ammo, 0, MaxPrimaryClipAmmo);
 }
 
 UAbilitySystemComponent* AAliveWeapon::GetAbilitySystemComponent() const
