@@ -11,11 +11,9 @@ AAliveProjectile::AAliveProjectile()
 	CollisionComp->InitSphereRadius(5.0f);
 	CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
 	CollisionComp->OnComponentHit.AddDynamic(this, &AAliveProjectile::OnHit);		// set up a notification for when this component hits something blocking
-
 	// Players can't walk on it
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
-
 	// Set as root component
 	RootComponent = CollisionComp;
 
@@ -27,8 +25,7 @@ AAliveProjectile::AAliveProjectile()
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = true;
 
-	// Die after 3 seconds by default
-	InitialLifeSpan = 1.0f;
+	LifeSpan = 1.0;
 }
 
 void AAliveProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
@@ -40,4 +37,11 @@ void AAliveProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, U
 
 		//Destroy();
 	}
+}
+
+void AAliveProjectile::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SetLifeSpan(LifeSpan);
 }
