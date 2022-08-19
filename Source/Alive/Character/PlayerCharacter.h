@@ -28,11 +28,19 @@ protected:
 	virtual void OnRep_PlayerState() override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-
+	
+protected:
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Alive|Input")
+	float TouchRotateRate;
+	
 private:
 	void MoveForward(float Val);
 	void MoveRight(float Val);
+	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
+	void TouchMoved(ETouchIndex::Type FingerIndex, FVector Location);
 
+	FVector PreviousTouchLocation;
+private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
 

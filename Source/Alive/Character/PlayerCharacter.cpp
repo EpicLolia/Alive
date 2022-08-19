@@ -11,6 +11,7 @@
 #include "Player/AlivePlayerState.h"
 
 APlayerCharacter::APlayerCharacter()
+	:TouchRotateRate(50.0f)
 {
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -98,6 +99,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	PlayerInputComponent->BindAxis("LookLeft/Right", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("LookUp/Down", this, &APawn::AddControllerPitchInput);
 
+	// handle touch devices
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &APlayerCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Repeat, this, &APlayerCharacter::TouchMoved);
+	
 	BindAbilityInput();
 }
 
@@ -128,6 +133,29 @@ void APlayerCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+	}
+}
+
+void APlayerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if(FingerIndex == ETouchIndex::Touch1)
+	{
+		PreviousTouchLocation = Location;
+	}
+}
+
+void APlayerCharacter::TouchMoved(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	if(FingerIndex == ETouchIndex::Touch1)
+	{
+		FVector2D ViewportSize;
+		GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
+		if (Location.X > ViewportSize.X / 4) // 能在右3/4屏幕控制视角旋转
+			{
+			AddControllerYawInput((Location.X - PreviousTouchLocation.X) * 0.002 * TouchRotateRate);
+			AddControllerPitchInput((Location.Y - PreviousTouchLocation.Y) * 0.002 * TouchRotateRate);
+			}
+		PreviousTouchLocation = Location;
 	}
 }
 
