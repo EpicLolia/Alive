@@ -31,10 +31,7 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
-
-	UPROPERTY(BlueprintReadOnly,EditDefaultsOnly,Category = "Projectile")
-	float LifeSpan;
-
+	
 	UPROPERTY(BlueprintReadWrite, Meta = (ExposeOnSpawn = true))
 	FGameplayEffectSpecHandle DamageEffectSpecHandle;
 private:

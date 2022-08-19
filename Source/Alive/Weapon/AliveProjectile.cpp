@@ -25,7 +25,7 @@ AAliveProjectile::AAliveProjectile()
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = true;
 
-	LifeSpan = 1.0;
+	InitialLifeSpan = 1.0;
 }
 
 void AAliveProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
@@ -42,6 +42,5 @@ void AAliveProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, U
 void AAliveProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-
-	SetLifeSpan(LifeSpan);
+	
 }
