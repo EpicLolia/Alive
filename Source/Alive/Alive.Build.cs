@@ -32,6 +32,9 @@ public class Alive : ModuleRules
 				"GameplayTags",
 				"GameplayTasks",
 				"GameplayAbilities",
+				"UMG",
+				"Slate",
+				"SlateCore"
 			}
 		);
 
