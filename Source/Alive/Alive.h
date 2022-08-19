@@ -30,5 +30,10 @@ enum class EAbilityInputID : uint8
 	// 10 PrevWeapon
 	PrevWeapon			UMETA(DisplayName = "Previous Weapon"),
 	// 11 Interact
-	Interact			UMETA(DisplayName = "Interact")
+	Interact			UMETA(DisplayName = "Interact"),
+	// 12 Crouch
+	Crouch			UMETA(DisplayName = "Crouch"),
+	// 13 Prone
+	Prone			UMETA(DisplayName = "Prone")
+	
 };
