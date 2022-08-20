@@ -38,8 +38,11 @@ private:
 	void MoveRight(float Val);
 	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
 	void TouchMoved(ETouchIndex::Type FingerIndex, FVector Location);
-
+	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+	
 	FVector PreviousTouchLocation;
+	ETouchIndex::Type CurrentFingerIndex;
+	bool bIsTouching = false;
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
@@ -66,3 +69,4 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Alive|PlayerCharacter")
 	int32 GetAbilityLevel(EAbilityInputID AbilityID) const;
 };
+

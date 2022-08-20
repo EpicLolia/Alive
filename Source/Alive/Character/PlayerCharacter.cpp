@@ -102,7 +102,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &APlayerCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Repeat, this, &APlayerCharacter::TouchMoved);
-	
+	PlayerInputComponent->BindTouch(IE_Repeat, this, &APlayerCharacter::TouchStopped);
+
 	BindAbilityInput();
 }
 
@@ -138,15 +139,17 @@ void APlayerCharacter::MoveRight(float Value)
 
 void APlayerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	if(FingerIndex == ETouchIndex::Touch1)
+	if(!bIsTouching)
 	{
+		bIsTouching = true;
+		CurrentFingerIndex = FingerIndex;
 		PreviousTouchLocation = Location;
 	}
 }
 
 void APlayerCharacter::TouchMoved(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	if(FingerIndex == ETouchIndex::Touch1)
+	if(FingerIndex == CurrentFingerIndex)
 	{
 		FVector2D ViewportSize;
 		GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
@@ -157,6 +160,11 @@ void APlayerCharacter::TouchMoved(ETouchIndex::Type FingerIndex, FVector Locatio
 			}
 		PreviousTouchLocation = Location;
 	}
+}
+
+void APlayerCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	bIsTouching = false;
 }
 
 void APlayerCharacter::AddCharacterAbilities()
