@@ -15,3 +15,6 @@
 2. 打开文件夹，右键.uproject文件，选择Genrate VS project file，生成.sln文件。
 3. 使用VS打开sln，编译运行即可。
 
+## 参考资料
+1.  Advanced Locomotion System V4
+2. [ tranek/GASDocumentation ](https://github.com/tranek/GASDocumentation)及其中文翻译[ BillEliot/GASDocumentation_Chinese ](https://github.com/BillEliot/GASDocumentation_Chinese)
