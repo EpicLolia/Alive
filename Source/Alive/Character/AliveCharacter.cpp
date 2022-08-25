@@ -45,6 +45,7 @@ void AAliveCharacter::AddCharacterAbilities()
 		}
 		AbilitySystemComponent->bHasCharacterAbilities = true;
 	}
+	
 }
 
 void AAliveCharacter::RemoveCharacterAbilities()

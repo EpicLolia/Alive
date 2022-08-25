@@ -15,11 +15,14 @@ class ALIVE_API APlayerCharacter : public AAliveCharacter
 	GENERATED_BODY()
 
 public:
-	APlayerCharacter();
+	// Sets default values for this character's properties
+	APlayerCharacter(const class FObjectInitializer& ObjectInitializer);
 
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
+	UFUNCTION(BlueprintCallable, Category = "PlayerCharacter")
+	class UAliveCharacterMovementComponent* GetAliveCharacterMovementComponent();
 protected:
 	virtual void BeginPlay() override;
 	// Server Only

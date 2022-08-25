@@ -2,6 +2,7 @@
 
 #include "PlayerCharacter.h"
 
+#include "AliveCharacterMovementComponent.h"
 #include "AbilitySystem/AliveAbilitySystemComponent.h"
 #include "AbilitySystem/Ability/AliveGameplayAbility.h"
 #include "Camera/CameraComponent.h"
@@ -10,7 +11,9 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/AlivePlayerState.h"
 
-APlayerCharacter::APlayerCharacter()
+APlayerCharacter::APlayerCharacter(const class FObjectInitializer& ObjectInitializer)
+	//:Super(ObjectInitializer.
+	//	SetDefaultSubobjectClass<UAliveCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
 	:TouchRotateRate(50.0f)
 {
 	// Don't rotate when the controller rotates. Let that just affect the camera.
@@ -45,6 +48,11 @@ APlayerCharacter::APlayerCharacter()
 	FirstPersonCameraComponent->bAutoActivate = false;
 
 	bHasBoundAbilityInput = false;
+}
+
+UAliveCharacterMovementComponent* APlayerCharacter::GetAliveCharacterMovementComponent()
+{
+	return Cast<UAliveCharacterMovementComponent>(GetMovementComponent());
 }
 
 void APlayerCharacter::BeginPlay()

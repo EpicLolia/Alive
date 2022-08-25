@@ -18,7 +18,6 @@ class ALIVE_API AAliveWeapon : public AActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
-
 public:
 	AAliveWeapon();
 
