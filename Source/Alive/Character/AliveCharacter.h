@@ -24,16 +24,20 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 protected:
-	// Only add or remove ability on server
+	// Only add or remove ability on server, this function will be called in derived class
 	virtual void AddCharacterAbilities();
 	void RemoveCharacterAbilities();
+	void AddCharacterEffects();
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Alive|Character", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Alive|AbilitySystem")
 	UAliveAbilitySystemComponent* AbilitySystemComponent;
 	
 	// Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Character")
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|AbilitySystem")
 	TArray<TSubclassOf<class UAliveGameplayAbility>> CharacterAbilities;
+	
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|AbilitySystem")
+	TArray<TSubclassOf<class UGameplayEffect>> CharacterEffects;
 
 public:
 	AAliveWeapon* GetCurrentWeapon() const { return CurrentWeapon; }

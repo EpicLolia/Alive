@@ -68,3 +68,25 @@ void AAliveCharacter::RemoveCharacterAbilities()
 	AbilitySystemComponent->bHasCharacterAbilities = false;
 }
 
+void AAliveCharacter::AddCharacterEffects()
+{
+	if (AbilitySystemComponent)
+	{
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+
+		for (TSubclassOf<UGameplayEffect> EffectClass : CharacterEffects)
+		{
+			if (!EffectClass)
+			{
+				continue;
+			}
+			FGameplayEffectSpecHandle NewHandle = AbilitySystemComponent->MakeOutgoingSpec(EffectClass, 1, EffectContext);
+			if (NewHandle.IsValid())
+			{
+				AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*NewHandle.Data.Get());
+			}
+		}
+	}
+}
+

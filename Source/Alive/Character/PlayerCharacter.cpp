@@ -72,6 +72,7 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 		AbilitySystemComponent->InitAbilityActorInfo(PS, this);
 
 		AddCharacterAbilities();
+		AddCharacterEffects();
 	}
 }
 
