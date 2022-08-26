@@ -45,6 +45,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Alive|Character")
 	FWeaponChangedDelegate OnWeaponChanged;
+	
 protected:
 	UPROPERTY()
 	AAliveWeapon* CurrentWeapon;

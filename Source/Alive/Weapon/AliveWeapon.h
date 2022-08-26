@@ -37,10 +37,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
 	void SetPrimaryClipAmmo(int32 Ammo);
-	
+
 	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
 	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
-	
+
 	UPROPERTY(BlueprintAssignable, Category = "Alive|Weapon")
 	FWeaponAmmoChangedDelegate OnPrimaryClipAmmoChanged;
 
@@ -109,8 +109,7 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Weapon")
 	FName FirePointSocket;
-
-
+	
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 protected:

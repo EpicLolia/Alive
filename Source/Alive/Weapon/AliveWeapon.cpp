@@ -77,6 +77,7 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 		SetOwner(InOwningCharacter);
 		AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform,
 		                  OwningCharacter->GetWeaponSocket());
+		SetActorRelativeTransform(WeaponMeshRelativeTransform);
 		CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 		// Hide if not equip
