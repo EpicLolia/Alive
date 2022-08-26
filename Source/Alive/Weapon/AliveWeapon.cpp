@@ -106,6 +106,10 @@ void AAliveWeapon::Equip()
 	WeaponMesh->CastShadow = true;
 	WeaponMesh->SetVisibility(true, true);
 	AddAbilitiesOnServer();
+	if(OwningCharacter)
+	{
+		OwningCharacter->PlayAnimMontage(EquipMontage);
+	}
 }
 
 void AAliveWeapon::UnEquip()
