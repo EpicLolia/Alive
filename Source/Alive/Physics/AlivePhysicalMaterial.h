@@ -14,4 +14,7 @@ class ALIVE_API UAlivePhysicalMaterial : public UPhysicalMaterial
 {
 	GENERATED_BODY()
 	
+public:
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly,Category="Alive")
+	int32 FootstepType;
 };
