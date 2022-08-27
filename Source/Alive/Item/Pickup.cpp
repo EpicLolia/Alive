@@ -37,6 +37,8 @@ void APickup::TryToPickItUp(AAliveCharacter* Character)
 	}
 
 	GivePickupTo(Character);
+
+	Destroy();
 }
 
 
