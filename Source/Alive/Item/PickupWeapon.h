@@ -16,10 +16,11 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	
+
+	// Only the server holds this object
 	UPROPERTY(BlueprintReadOnly, meta = (ExposeOnSpawn), Category = "Pickup")
 	class AAliveWeapon* Weapon;
 	
-	virtual bool CanBePickedUp(const AAliveCharacter* Character) const override;
+	virtual bool CanPickUp(const AAliveCharacter* Character) const override;
 	virtual void GivePickupTo(AAliveCharacter* Character) override;
 };

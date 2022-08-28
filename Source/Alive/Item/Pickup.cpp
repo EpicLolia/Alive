@@ -8,6 +8,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "Weapon/AliveWeapon.h"
 
 APickup::APickup()
@@ -21,7 +22,6 @@ APickup::APickup()
 	CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	CollisionComp->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic); // TODO
 	RootComponent = CollisionComp;
-
 }
 
 void APickup::BeginPlay()
@@ -31,12 +31,18 @@ void APickup::BeginPlay()
 
 void APickup::TryToPickItUp(AAliveCharacter* Character)
 {
-	if (!HasAuthority() || !CanBePickedUp(Character))
+	check(HasAuthority());
+
+	if (!CanPickUp(Character))
 	{
 		return;
 	}
 
+	bHasBeenTriggered = true;
+	
 	GivePickupTo(Character);
+
+	NetMulticast_PickUpEvent();
 
 	Destroy();
 }
@@ -44,10 +50,7 @@ void APickup::TryToPickItUp(AAliveCharacter* Character)
 
 void APickup::GivePickupTo(AAliveCharacter* Character)
 {
-	if(!Character)
-	{
-		return;
-	}
+	check(HasAuthority());
 	
 	UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
 	if (ASC)
@@ -70,8 +73,12 @@ void APickup::GivePickupTo(AAliveCharacter* Character)
 	}
 }
 
-
-bool APickup::CanBePickedUp(const AAliveCharacter* Character) const
+void APickup::NetMulticast_PickUpEvent_Implementation()
 {
-	return true;
+	OnPickUpEvent();
+}
+
+bool APickup::CanPickUp(const AAliveCharacter* Character) const
+{
+	return IsValid(Character) && !bHasBeenTriggered;
 }

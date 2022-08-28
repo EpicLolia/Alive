@@ -21,19 +21,14 @@ AAliveWeapon::AAliveWeapon()
 	MaxPrimaryClipAmmo = 30;
 	PrimaryAmmoType = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.None"));
 
-	// Collision
-	CollisionComp = CreateDefaultSubobject<UCapsuleComponent>(FName("CollisionComponent"));
-	CollisionComp->InitCapsuleSize(40.0f, 50.0f);
-	CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	RootComponent = CollisionComp;
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(FName("WeaponMesh"));
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WeaponMesh->SetupAttachment(CollisionComp);
 	WeaponMesh->SetRelativeTransform(WeaponMeshRelativeTransform);
 	WeaponMesh->CastShadow = true;
 	WeaponMesh->SetVisibility(true, true);
 	WeaponMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
+	RootComponent = WeaponMesh;
 
 	DefaultFireMode = FGameplayTag::RequestGameplayTag(FName("Weapon.Rifle.FireMode.FullAuto"));
 	FireMode = FGameplayTag::RequestGameplayTag("Weapon.Rifle.FireMode.FullAuto");
@@ -45,7 +40,6 @@ void AAliveWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AAliveWeapon, PrimaryClipAmmo, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AAliveWeapon, MaxPrimaryClipAmmo, COND_OwnerOnly);
 }
 
 void AAliveWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
@@ -60,15 +54,10 @@ void AAliveWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTra
 		                              WeaponIsFiringTag)));
 }
 
-void AAliveWeapon::NotifyActorBeginOverlap(AActor* Other)
-{
-	Super::NotifyActorBeginOverlap(Other);
-
-	// TODO: Pickup on touch
-}
-
 void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 {
+	check(HasAuthority());
+
 	OwningCharacter = InOwningCharacter;
 	if (OwningCharacter)
 	{
@@ -78,15 +67,11 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 		AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform,
 		                  OwningCharacter->GetWeaponSocket());
 		SetActorRelativeTransform(WeaponMeshRelativeTransform);
-		CollisionComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		SetWeaponVisibility(false);
 
-		// Hide if not equip
-		if (OwningCharacter->GetCurrentWeapon() != this)
-		{
-			WeaponMesh->CastShadow = false;
-			WeaponMesh->SetVisibility(true, true);
-			WeaponMesh->SetVisibility(false, true);
-		}
+
+		OwningCharacter->AddWeaponToInventory(this);
+		AddAbilities();
 	}
 	else
 	{
@@ -96,27 +81,27 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 	}
 }
 
+void AAliveWeapon::RemoveFormOwningCharacter()
+{
+	check(HasAuthority());
+	
+	RemoveAbilities();
+	
+	AbilitySystemComponent = nullptr;
+	SetOwner(nullptr);
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	OwningCharacter = nullptr;
+}
+
+void AAliveWeapon::SetWeaponVisibility(bool bWeaponVisibility) const
+{
+	WeaponMesh->CastShadow = bWeaponVisibility;
+	WeaponMesh->SetVisibility(bWeaponVisibility, true);
+}
+
 FVector AAliveWeapon::GetFirePointWorldLocation() const
 {
 	return WeaponMesh->GetSocketLocation(FirePointSocket);
-}
-
-void AAliveWeapon::Equip()
-{
-	WeaponMesh->CastShadow = true;
-	WeaponMesh->SetVisibility(true, true);
-	AddAbilitiesOnServer();
-	if(OwningCharacter)
-	{
-		OwningCharacter->PlayAnimMontage(EquipMontage);
-	}
-}
-
-void AAliveWeapon::UnEquip()
-{
-	WeaponMesh->CastShadow = false;
-	WeaponMesh->SetVisibility(false, true);
-	RemoveAbilitiesOnServer();
 }
 
 void AAliveWeapon::BeginPlay()
@@ -146,11 +131,11 @@ UAbilitySystemComponent* AAliveWeapon::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
-void AAliveWeapon::AddAbilitiesOnServer()
+void AAliveWeapon::AddAbilities()
 {
-	if (!IsValid(OwningCharacter) ||
-		!OwningCharacter->GetAbilitySystemComponent() ||
-		GetLocalRole() != ROLE_Authority)
+	check(HasAuthority());
+	
+	if (!IsValid(OwningCharacter))
 	{
 		return;
 	}
@@ -169,11 +154,11 @@ void AAliveWeapon::AddAbilitiesOnServer()
 	}
 }
 
-void AAliveWeapon::RemoveAbilitiesOnServer()
+void AAliveWeapon::RemoveAbilities()
 {
-	if (!IsValid(OwningCharacter) ||
-		!OwningCharacter->GetAbilitySystemComponent() ||
-		GetLocalRole() != ROLE_Authority)
+	check(HasAuthority());
+	
+	if (!IsValid(OwningCharacter))
 	{
 		return;
 	}
@@ -199,9 +184,4 @@ int32 AAliveWeapon::GetWeaponAbilityLevel() const
 void AAliveWeapon::OnRep_PrimaryClipAmmo(int32 OldPrimaryClipAmmo)
 {
 	OnPrimaryClipAmmoChanged.Broadcast(OldPrimaryClipAmmo, PrimaryClipAmmo);
-}
-
-void AAliveWeapon::OnRep_MaxPrimaryClipAmmo(int32 OldMaxPrimaryClipAmmo)
-{
-	OnMaxPrimaryClipAmmoChanged.Broadcast(OldMaxPrimaryClipAmmo, MaxPrimaryClipAmmo);
 }

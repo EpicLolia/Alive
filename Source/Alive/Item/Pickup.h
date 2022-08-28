@@ -8,6 +8,9 @@
 
 class AAliveCharacter;
 
+/**
+ * The Pickup Actor should be spawned by server
+ */
 UCLASS()
 class ALIVE_API APickup : public AActor
 {
@@ -16,26 +19,31 @@ class ALIVE_API APickup : public AActor
 public:
 	APickup();
 
-	// Should be called on server only 
-	UFUNCTION(BlueprintCallable)
-	void TryToPickItUp(AAliveCharacter* Character);
-
 protected:
 	virtual void BeginPlay() override;
 
-	// Pickup Collision Trigger
-	UPROPERTY(VisibleAnywhere, Category = "Pickup")
-	class USphereComponent* CollisionComp;
+public:
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void TryToPickItUp(AAliveCharacter* Character);
+
+protected:
+	virtual bool CanPickUp(const AAliveCharacter* Character) const;
+	virtual void GivePickupTo(AAliveCharacter* Character);
 	
-	// Sound played when player picks it up
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Pickup")
-	class USoundCue* PickupSound;
-	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Pickup")
+	void OnPickUpEvent();
+
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Pickup")
 	TArray<TSubclassOf<class UGameplayEffect>> EffectClasses;
 
-protected:
-	virtual bool CanBePickedUp(const AAliveCharacter* Character) const;
-	// Only work on server
-	virtual void GivePickupTo(AAliveCharacter* Character);
+private:
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Pickup", meta=(AllowPrivateAccess = true))
+	class USphereComponent* CollisionComp;
+	
+	UFUNCTION(NetMulticast,Unreliable)
+	void NetMulticast_PickUpEvent();
+	void NetMulticast_PickUpEvent_Implementation();
+
+	// Only trigger once
+	bool bHasBeenTriggered = false;
 };

@@ -21,97 +21,87 @@ class ALIVE_API AAliveWeapon : public AActor, public IAbilitySystemInterface
 public:
 	AAliveWeapon();
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 protected:
-	// Pickup on touch
-	virtual void NotifyActorBeginOverlap(class AActor* Other) override;
-
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
+	
 	virtual void BeginPlay() override;
+	
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
-
 public:
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
 	int32 GetPrimaryClipAmmo() const { return PrimaryClipAmmo; }
-
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
-	void SetPrimaryClipAmmo(int32 Ammo);
-
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
 	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
 
-	UPROPERTY(BlueprintAssignable, Category = "Alive|Weapon")
+	UFUNCTION(BlueprintCallable, Category = "Alive|Ammo")
+	void SetPrimaryClipAmmo(int32 Ammo);
+	
+	UPROPERTY(BlueprintAssignable, Category = "Alive|Ammo")
 	FWeaponAmmoChangedDelegate OnPrimaryClipAmmoChanged;
 
-	UPROPERTY(BlueprintAssignable, Category = "Alive|Weapon")
-	FWeaponAmmoChangedDelegate OnMaxPrimaryClipAmmoChanged;
 protected:
-	// How much ammo in the clip the gun starts with
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, ReplicatedUsing = OnRep_PrimaryClipAmmo, Category = "Alive|Weapon|Ammo")
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, ReplicatedUsing = OnRep_PrimaryClipAmmo, Category = "Alive|Ammo")
 	int32 PrimaryClipAmmo;
 	UFUNCTION()
 	virtual void OnRep_PrimaryClipAmmo(int32 OldPrimaryClipAmmo);
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, ReplicatedUsing = OnRep_MaxPrimaryClipAmmo,
-		Category = "Alive|Weapon|Ammo")
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
 	int32 MaxPrimaryClipAmmo;
-	UFUNCTION()
-	virtual void OnRep_MaxPrimaryClipAmmo(int32 OldMaxPrimaryClipAmmo);
 
-	UPROPERTY(BlueprintReadWrite, VisibleInstanceOnly, Category = "Alive|Weapon")
-	FGameplayTag FireMode;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Alive|Weapon")
-	FGameplayTag DefaultFireMode;
-
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Weapon")
+	// What kind of Ammo is used in this weapon.
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
 	FGameplayTag PrimaryAmmoType;
 
+	// Init the FireMode while character pick the weapon up
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive")
+	FGameplayTag DefaultFireMode;
+
+	// Only the client's fire action will be affected. Server do not care about it.
+	UPROPERTY(BlueprintReadWrite, Category = "Alive")
+	FGameplayTag FireMode;
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
-	UAnimMontage* GetEquipMontage() const { return EquipMontage; }
-
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
-	FVector GetFirePointWorldLocation() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon")
-	AAliveCharacter* GetOwningCharacter() const { return OwningCharacter; }
-
+	FORCEINLINE AAliveCharacter* GetOwningCharacter()const{return OwningCharacter;}
+	
 	// Owner Should have AbilitySystemComponent
-	UFUNCTION(BlueprintCallable, Category = "Alive|Weapon") // TODO
+	UFUNCTION(BlueprintCallable, Category = "Alive")
 	void SetOwningCharacter(AAliveCharacter* InOwningCharacter);
+	
+	// Called when the character dies or the weapon is discarded
+	UFUNCTION(BlueprintCallable, Category = "Alive")
+	void RemoveFormOwningCharacter();
+	
+	UFUNCTION(BlueprintCallable, Category = "Alive")
+	void SetWeaponVisibility(bool bWeaponVisibility) const;
 
-	// Called when the player equips this weapon
-	UFUNCTION(BlueprintCallable)
-	void Equip();
-
-	// Called when the player unequips this weapon
-	void UnEquip();
 protected:
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Alive|Weapon")
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Alive")
 	AAliveCharacter* OwningCharacter;
-
-	// Collision capsule for when weapon is in pickup mode
-	UPROPERTY(VisibleAnywhere)
-	class UCapsuleComponent* CollisionComp;
-
-	UPROPERTY(VisibleAnywhere, Category = "Alive|Weapon")
+	
+	// Relative Transform of weapon Mesh when equipped
+	UPROPERTY(EditDefaultsOnly, Category = "Alive|Transform")
+	FTransform WeaponMeshRelativeTransform;
+	
+private:
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "AliveWeapon",meta=(AllowPrivateAccess = true))
 	USkeletalMeshComponent* WeaponMesh;
 
-	// Relative Transform of weapon Mesh when equipped
-	UPROPERTY(EditDefaultsOnly, Category = "Alive|Weapon")
-	FTransform WeaponMeshRelativeTransform;
+public:
+	// Must set up FirePointSocket in Alive|Transform. 
+	UFUNCTION(BlueprintCallable, Category = "Alive")
+	FVector GetFirePointWorldLocation() const;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Animation")
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Alive|Transform")
+	FName FirePointSocket;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Animation")
 	UAnimMontage* EquipMontage;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Weapon")
-	FName FirePointSocket;
-	
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	
 protected:
 	UPROPERTY()
 	class UAliveAbilitySystemComponent* AbilitySystemComponent;
@@ -120,18 +110,18 @@ protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Abilities")
 	TArray<TSubclassOf<class UAliveGameplayAbility>> WeaponAbilities;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Alive|Abilities")
-	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
-
 	UPROPERTY()
 	class ATA_LineTrace* LineTraceTargetActor;
+	
 private:
 	// Only add or remove ability on server. It will auto sync to client.
-	void AddAbilitiesOnServer();
-	void RemoveAbilitiesOnServer();
+	void AddAbilities();
+	void RemoveAbilities();
 
 	int32 GetWeaponAbilityLevel() const;
 
+	// Cache the activatable abilities added by this weapon
+	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
 	// Cache tag
 	FGameplayTag WeaponIsFiringTag;
 };

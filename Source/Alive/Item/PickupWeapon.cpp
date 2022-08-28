@@ -4,8 +4,8 @@
 #include "PickupWeapon.h"
 
 #include "Character/AliveCharacter.h"
-#include "Components/SphereComponent.h"
 #include "Weapon/AliveWeapon.h"
+
 
 
 APickupWeapon::APickupWeapon()
@@ -17,16 +17,32 @@ void APickupWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (Weapon)
+	if (HasAuthority())
 	{
-		Weapon->AttachToComponent(CollisionComp, FAttachmentTransformRules::KeepRelativeTransform);
-		Weapon->SetActorRelativeTransform(FTransform());
+		if (Weapon)
+		{
+			if (Weapon->GetOwningCharacter())
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
+											 TEXT("APickupWeapon: Weapon already has owner!"));
+				Weapon->RemoveFormOwningCharacter();
+			}
+			Weapon->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
+			Weapon->SetActorRelativeTransform(FTransform());
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
+			                                 TEXT("APickupWeapon: Do not have weapon!"));
+			Destroy();
+		}
 	}
 }
 
-bool APickupWeapon::CanBePickedUp(const AAliveCharacter* Character) const
+bool APickupWeapon::CanPickUp(const AAliveCharacter* Character) const
 {
-	return Super::CanBePickedUp(Character) && true;
+	// TODO: Limit on the number of weapons
+	return Super::CanPickUp(Character) && Weapon;
 }
 
 void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
@@ -36,9 +52,6 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 	if (Weapon)
 	{
 		Weapon->SetOwningCharacter(Character);
-		if (!Character->GetCurrentWeapon())
-		{
-			Character->SetCurrentWeapon(Weapon);
-		}
 	}
+	Weapon = nullptr;
 }
