@@ -64,7 +64,7 @@ protected:
 public:
 	FORCEINLINE AAliveCharacter* GetOwningCharacter()const{return OwningCharacter;}
 	
-	// Owner Should have AbilitySystemComponent
+	// Called when added to inventory. Owner Should have AbilitySystemComponent
 	UFUNCTION(BlueprintCallable, Category = "Alive")
 	void SetOwningCharacter(AAliveCharacter* InOwningCharacter);
 	
@@ -72,10 +72,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Alive")
 	void RemoveFormOwningCharacter();
 	
-	UFUNCTION(BlueprintCallable, Category = "Alive")
 	void SetWeaponVisibility(bool bWeaponVisibility) const;
 
 protected:
+	// This object is valid only in the server. Temporarily. 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Alive")
 	AAliveCharacter* OwningCharacter;
 	
@@ -119,9 +119,10 @@ private:
 	void RemoveAbilities();
 
 	int32 GetWeaponAbilityLevel() const;
-
-	// Cache the activatable abilities added by this weapon
-	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
 	// Cache tag
 	FGameplayTag WeaponIsFiringTag;
+	
+public:
+	// Cache the activatable abilities added by this weapon
+	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
 };

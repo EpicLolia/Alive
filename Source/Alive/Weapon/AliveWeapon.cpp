@@ -61,16 +61,12 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 	OwningCharacter = InOwningCharacter;
 	if (OwningCharacter)
 	{
-		// Called when added to inventory
 		AbilitySystemComponent = Cast<UAliveAbilitySystemComponent>(OwningCharacter->GetAbilitySystemComponent());
 		SetOwner(InOwningCharacter);
 		AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform,
 		                  OwningCharacter->GetWeaponSocket());
 		SetActorRelativeTransform(WeaponMeshRelativeTransform);
-		SetWeaponVisibility(false);
-
-
-		OwningCharacter->AddWeaponToInventory(this);
+		
 		AddAbilities();
 	}
 	else

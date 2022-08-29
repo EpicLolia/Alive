@@ -48,21 +48,23 @@ public:
 	
 	FName GetWeaponSocket() const { return WeaponSocket; }
 
+	// Can be used to Change AnimLayer or UI 
 	UPROPERTY(BlueprintAssignable, Category = "Alive|Character")
 	FWeaponDelegate OnWeaponChanged;
 
-	// A locally delegate. Only called on actor's owner. 
+	// A locally delegate. Only called on actor's owner. Used to show some UI Tips.
 	UPROPERTY(BlueprintAssignable, Category = "Alive|Character")
-	FWeaponDelegate OnWeaponAdded;
+	FWeaponDelegate OnWeaponAddedToMyInventory;
 	
 protected:
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon)
-	AAliveWeapon* CurrentWeapon;
-
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Weapon")
 	FName WeaponSocket;
-	
+
 private:
+	// Replicated Simulated Only
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon)
+	AAliveWeapon* CurrentWeapon;
+	// This will eventually be executed on all clients. Including server.
 	UFUNCTION()
 	void OnRep_CurrentWeapon(const AAliveWeapon* PreviousWeapon);
 
@@ -73,6 +75,11 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponInventory)
 	TArray<AAliveWeapon*> WeaponInventory;
+	// This will eventually be executed on all clients. Including server.
 	UFUNCTION()
 	void OnRep_WeaponInventory();
+
+	// Used for reconnection after disconnection
+	void AdjustWeaponsVisibility();
 };
+

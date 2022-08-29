@@ -16,4 +16,5 @@ class ALIVE_API UAliveCharacterMovementComponent : public UCharacterMovementComp
 
 public:
 	UAliveCharacterMovementComponent();
+
 };

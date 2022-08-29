@@ -49,6 +49,7 @@ public:
 	}
 };
 
+
 UENUM(BlueprintType)
 enum class EBulletType:uint8
 {
@@ -59,7 +60,6 @@ enum class EBulletType:uint8
 	/** Consider both the velocity and gravity of the bullet . */
 	ProjectileAndGravity
 };
-
 
 UCLASS()
 class ALIVE_API ATraceProjectile : public AActor

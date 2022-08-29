@@ -6,7 +6,7 @@
 #include "Character/AliveCharacter.h"
 #include "Weapon/AliveWeapon.h"
 
-
+//DEFINE_LOG_CATEGORY_STATIC(LogPickupWeapon, Log, All);
 
 APickupWeapon::APickupWeapon()
 {
@@ -51,7 +51,8 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 
 	if (Weapon)
 	{
-		Weapon->SetOwningCharacter(Character);
+		Weapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		Character->AddWeaponToInventory(Weapon);
 	}
 	Weapon = nullptr;
 }

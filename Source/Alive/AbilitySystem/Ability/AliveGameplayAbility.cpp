@@ -6,7 +6,6 @@ UAliveGameplayAbility::UAliveGameplayAbility()
 {
 	// Default to Instance Per Actor
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-    
 }
 
 bool UAliveGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle,
