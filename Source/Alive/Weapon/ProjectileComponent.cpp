@@ -1,11 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "ProjectileComponent.h"
 #include "AliveWeapon.h"
-#include "Weapon/ProjectileComponent.h"
 #include "Alive.h"
 #include "Character/AliveCharacter.h"
 #include "DrawDebugHelpers.h"
 #include "Net/UnrealNetwork.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogProjectile, Log, All);
 
 UProjectileComponent::UProjectileComponent()
 {
@@ -18,6 +20,10 @@ UProjectileComponent::UProjectileComponent()
 	Range = 1200.0f;
 	Velocity = 600.0f;
 	Gravity = 9.8f;
+
+	NetworkDelayTolerance = 200.0f;
+	NetworkFluctuationTolerance = 200.0f;
+	TargetMaximumVelocity = 6.0f;
 }
 
 void UProjectileComponent::BeginPlay()
@@ -27,6 +33,10 @@ void UProjectileComponent::BeginPlay()
 	// Owner must be an AliveWeapon
 	OwningWeapon = Cast<AAliveWeapon>(GetOwner());
 	check(OwningWeapon);
+
+	UpdateInterval = 1.0f / static_cast<float>(UpdateFrequency);
+	ProjectileLifespan = Range / Velocity;
+	CalculateWaitHitResultFrames();
 }
 
 
@@ -41,15 +51,15 @@ void UProjectileComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 		// A logical frame
 		for (auto& Projectile : ProjectileInstances)
 		{
-
+			UpdateProjectileOneFrame(Projectile);
 		}
 
 		// Clean up invalid ProjectileInstance
 		ProjectileInstances.RemoveAllSwap([](const FProjectileInstance& Projectile)
 		{
-			return Projectile.PendingKill;
+			return Projectile.bPendingKill;
 		});
-		
+
 		ElapsedTimeSinceLastUpdate -= UpdateInterval;
 	}
 }
@@ -64,11 +74,68 @@ void UProjectileComponent::TraceAndDrawDebug(TArray<FHitResult>& HitResults, con
 	Params.AddIgnoredActors(ActorsToIgnore);
 
 	// Only the overlap hit results and the first block hit result will be generated.
-	GetWorld()->LineTraceMultiByChannel(HitResults, Start, End,
-	                                    ECC_Projectile, Params,
-	                                    FCollisionResponseParams());
+	GetWorld()->LineTraceMultiByChannel(HitResults, Start, End, ECC_Projectile, Params, FCollisionResponseParams());
 	if (bDrawDebug)
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 3.0f, 0, 5);
+	}
+}
+
+void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Projectile)
+{
+	float RealUpdateInterval = FMath::Min(ProjectileLifespan - Projectile.ElapsedTime, UpdateInterval);
+	RealUpdateInterval = FMath::Clamp(RealUpdateInterval, 0.0f, UpdateInterval);
+	if (RealUpdateInterval < UpdateInterval)
+	{
+		Projectile.bPendingKill = true; // Time out
+	}
+
+	const FVector PreLocation = Projectile.CurrentLocation;
+	const float LastElapsedTime = Projectile.ElapsedTime;
+
+	// Calculate current state
+	Projectile.ElapsedTime += RealUpdateInterval;
+	switch (ProjectileType)
+	{
+	case EProjectileType::Velocity:
+		Projectile.CurrentLocation += Projectile.InitRotation.Vector() * 100.0f * Velocity * RealUpdateInterval;
+		break;
+	case EProjectileType::VelocityAndGravity:
+		Projectile.CurrentLocation += Projectile.InitRotation.Vector() * 100.0f * Velocity * RealUpdateInterval;
+		Projectile.CurrentLocation.Z -= 0.5f * 100.0f * Gravity * (FMath::Square(Projectile.ElapsedTime) - FMath::Square(LastElapsedTime));
+		break;
+	default:
+		UE_LOG(LogProjectile, Error, TEXT("Projectile Component has an error Projectiletype!"));
+		break;
+	}
+
+	
+	//TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
+}
+
+void UProjectileComponent::ServerHitResultCheck_Implementation(uint16 CheckKey, FHitResult HitResult)
+{
+}
+
+void UProjectileComponent::CalculateWaitHitResultFrames()
+{
+	// Target's initial position error caused by NetworkDelay at the moment the Projectile is fired
+	const float PositionError = NetworkDelayTolerance * TargetMaximumVelocity; // mm
+
+	// An extreme situation where the object is dashing toward you.
+	const float ServerWaitTime = (PositionError / (Velocity + TargetMaximumVelocity) + NetworkFluctuationTolerance) * 0.001f; // s
+	ServerWaitHitResultFrames = static_cast<int32>(ServerWaitTime / UpdateInterval + (1 - KINDA_SMALL_NUMBER));
+
+	// An extreme situation where the object is running away from you.
+	// Check if the projectile has a suitable velocity to hit the target
+	if (Velocity > 1.2f * TargetMaximumVelocity)
+	{
+		const float ClientWaitTime = (PositionError / (Velocity - TargetMaximumVelocity) + NetworkFluctuationTolerance) * 0.001f; // s
+		ClientWaitHitResultFrames = static_cast<int32>(ClientWaitTime / UpdateInterval + (1 - KINDA_SMALL_NUMBER));
+	}
+	else
+	{
+		const float ClientWaitTime = (5.0f * NetworkDelayTolerance + NetworkFluctuationTolerance) * 0.001f; // s
+		ClientWaitHitResultFrames = static_cast<int32>(ClientWaitTime / UpdateInterval + (1 - KINDA_SMALL_NUMBER));
 	}
 }
