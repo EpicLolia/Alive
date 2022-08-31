@@ -75,10 +75,13 @@ void UProjectileComponent::TraceAndDrawDebug(TArray<FHitResult>& HitResults, con
 
 	// Only the overlap hit results and the first block hit result will be generated.
 	GetWorld()->LineTraceMultiByChannel(HitResults, Start, End, ECC_Projectile, Params, FCollisionResponseParams());
+
+#ifdef ENABLE_DRAW_DEBUG
 	if (bDrawDebug)
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 3.0f, 0, 5);
 	}
+#endif
 }
 
 void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Projectile)

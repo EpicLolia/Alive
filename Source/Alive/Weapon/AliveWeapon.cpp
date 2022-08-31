@@ -2,6 +2,7 @@
 
 #include "AliveWeapon.h"
 
+#include "ProjectileComponent.h"
 #include "AbilitySystem/AliveAbilitySystemComponent.h"
 #include "AbilitySystem/Ability/AliveGameplayAbility.h"
 #include "Character/AliveCharacter.h"
@@ -10,6 +11,8 @@
 
 AAliveWeapon::AAliveWeapon()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Network Setting
 	bReplicates = true;
 	bNetUseOwnerRelevancy = true;
@@ -18,8 +21,11 @@ AAliveWeapon::AAliveWeapon()
 	// Ammo
 	PrimaryClipAmmo = 30;
 	MaxPrimaryClipAmmo = 30;
+	PrimaryCartridgeAmmo = 1;
 	PrimaryAmmoType = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.None"));
+	MaxSpreadAngle = 10.0f;
 
+	ProjectileComponent = CreateDefaultSubobject<UProjectileComponent>(FName("ProjectileComponent"));
 
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(FName("WeaponMesh"));
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -33,6 +39,14 @@ AAliveWeapon::AAliveWeapon()
 	FireMode = FGameplayTag::RequestGameplayTag("Weapon.Rifle.FireMode.FullAuto");
 	WeaponIsFiringTag = FGameplayTag::RequestGameplayTag("Weapon.IsFiring");
 }
+
+void AAliveWeapon::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UpdateSpread(DeltaSeconds);
+}
+
 
 void AAliveWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -65,7 +79,7 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 		AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform,
 		                  OwningCharacter->GetWeaponSocket());
 		SetActorRelativeTransform(WeaponMeshRelativeTransform);
-		
+
 		AddAbilities();
 	}
 	else
@@ -79,9 +93,9 @@ void AAliveWeapon::SetOwningCharacter(AAliveCharacter* InOwningCharacter)
 void AAliveWeapon::RemoveFormOwningCharacter()
 {
 	check(HasAuthority());
-	
+
 	RemoveAbilities();
-	
+
 	AbilitySystemComponent = nullptr;
 	SetOwner(nullptr);
 	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
@@ -111,6 +125,11 @@ void AAliveWeapon::SetPrimaryClipAmmo(int32 Ammo)
 	OnPrimaryClipAmmoChanged.Broadcast(OldPrimaryClipAmmo, PrimaryClipAmmo);
 }
 
+void AAliveWeapon::AddSpread()
+{
+	CurrentSpreadAngle += FMath::Max((MaxSpreadAngle - CurrentSpreadAngle) * 0.4f, 0.0f);
+}
+
 UAbilitySystemComponent* AAliveWeapon::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
@@ -119,7 +138,7 @@ UAbilitySystemComponent* AAliveWeapon::GetAbilitySystemComponent() const
 void AAliveWeapon::AddAbilities()
 {
 	check(HasAuthority());
-	
+
 	if (!IsValid(OwningCharacter))
 	{
 		return;
@@ -142,7 +161,7 @@ void AAliveWeapon::AddAbilities()
 void AAliveWeapon::RemoveAbilities()
 {
 	check(HasAuthority());
-	
+
 	if (!IsValid(OwningCharacter))
 	{
 		return;
@@ -169,4 +188,9 @@ int32 AAliveWeapon::GetWeaponAbilityLevel() const
 void AAliveWeapon::OnRep_PrimaryClipAmmo(int32 OldPrimaryClipAmmo)
 {
 	OnPrimaryClipAmmoChanged.Broadcast(OldPrimaryClipAmmo, PrimaryClipAmmo);
+}
+
+void AAliveWeapon::UpdateSpread(float DeltaSeconds)
+{
+	CurrentSpreadAngle = FMath::Max(CurrentSpreadAngle - DeltaSeconds * 5.0f, 0.0f);
 }

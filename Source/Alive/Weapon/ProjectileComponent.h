@@ -75,6 +75,9 @@ private:
 	UPROPERTY()
 	class AAliveWeapon* OwningWeapon;
 
+public:
+	float GetRange() const { return Range; }
+
 protected:
 	/**
 	 * Use a logical tick rate. Ensure that the client and server have the same projectile simulation results.

@@ -9,6 +9,8 @@
 
 #include "PlayerCharacter.generated.h"
 
+class USpringArmComponent;
+
 UCLASS()
 class ALIVE_API APlayerCharacter : public AAliveCharacter
 {
@@ -20,6 +22,7 @@ public:
 
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerCharacter")
 	class UAliveCharacterMovementComponent* GetAliveCharacterMovementComponent();
@@ -31,24 +34,25 @@ protected:
 	virtual void OnRep_PlayerState() override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-	
+
 protected:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Alive|Input")
 	float TouchRotateRate;
-	
+
 private:
 	void MoveForward(float Val);
 	void MoveRight(float Val);
 	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
 	void TouchMoved(ETouchIndex::Type FingerIndex, FVector Location);
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
-	
+
 	FVector PreviousTouchLocation;
 	ETouchIndex::Type CurrentFingerIndex;
 	bool bIsTouching = false;
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
+	USpringArmComponent* CameraBoom;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
@@ -72,4 +76,3 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Alive|PlayerCharacter")
 	int32 GetAbilityLevel(EAbilityInputID AbilityID) const;
 };
-

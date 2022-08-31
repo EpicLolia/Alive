@@ -12,6 +12,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponAmmoChangedDelegate, int32, OldValue, int32, NewValue);
 
 class AAliveCharacter;
+class UProjectileComponent;
 
 UCLASS()
 class ALIVE_API AAliveWeapon : public AActor, public IAbilitySystemInterface
@@ -21,45 +22,6 @@ class ALIVE_API AAliveWeapon : public AActor, public IAbilitySystemInterface
 public:
 	AAliveWeapon();
 
-protected:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
-
-	virtual void BeginPlay() override;
-
-public:
-	int32 GetPrimaryClipAmmo() const { return PrimaryClipAmmo; }
-	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
-
-	UFUNCTION(BlueprintCallable, Category = "Alive|Ammo")
-	void SetPrimaryClipAmmo(int32 Ammo);
-
-	UPROPERTY(BlueprintAssignable, Category = "Alive|Ammo")
-	FWeaponAmmoChangedDelegate OnPrimaryClipAmmoChanged;
-
-protected:
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, ReplicatedUsing = OnRep_PrimaryClipAmmo, Category = "Alive|Ammo")
-	int32 PrimaryClipAmmo;
-	UFUNCTION()
-	virtual void OnRep_PrimaryClipAmmo(int32 OldPrimaryClipAmmo);
-
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
-	int32 MaxPrimaryClipAmmo;
-
-	// What kind of Ammo is used in this weapon.
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
-	FGameplayTag PrimaryAmmoType;
-
-	// Init the FireMode while character pick the weapon up
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive")
-	FGameplayTag DefaultFireMode;
-
-	// Only the client's fire action will be affected. Server do not care about it.
-	UPROPERTY(BlueprintReadWrite, Category = "Alive")
-	FGameplayTag FireMode;
-
-public:
 	FORCEINLINE AAliveCharacter* GetOwningCharacter() const { return OwningCharacter; }
 
 	// Called when added to inventory. Owner Should have AbilitySystemComponent
@@ -72,7 +34,14 @@ public:
 
 	void SetWeaponVisibility(bool bWeaponVisibility) const;
 
+	UProjectileComponent* GetProjectileComponent() const { return ProjectileComponent; }
+
 protected:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void BeginPlay() override;
+
 	// This object is valid only in the server. Temporarily. 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Alive")
 	AAliveCharacter* OwningCharacter;
@@ -85,6 +54,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "AliveWeapon", meta=(AllowPrivateAccess = true))
 	USkeletalMeshComponent* WeaponMesh;
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "AliveWeapon", meta=(AllowPrivateAccess = true))
+	UProjectileComponent* ProjectileComponent;
 public:
 	// Must set up FirePointSocket in Alive|Transform. 
 	UFUNCTION(BlueprintCallable, Category = "Alive")
@@ -98,7 +69,58 @@ protected:
 	UAnimMontage* EquipMontage;
 
 public:
+	int32 GetPrimaryClipAmmo() const { return PrimaryClipAmmo; }
+	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
+	int32 GetPrimaryCartridgeAmmo() const { return PrimaryCartridgeAmmo; }
+
+	UFUNCTION(BlueprintCallable, Category = "Alive|Ammo")
+	void SetPrimaryClipAmmo(int32 Ammo);
+
+	UPROPERTY(BlueprintAssignable, Category = "Alive|Ammo")
+	FWeaponAmmoChangedDelegate OnPrimaryClipAmmoChanged;
+
+	float GetCurrentSpreadAngle() const { return CurrentSpreadAngle; }
+	void AddSpread();
+
+protected:
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, ReplicatedUsing = OnRep_PrimaryClipAmmo, Category = "Alive|Ammo")
+	int32 PrimaryClipAmmo;
+	UFUNCTION()
+	virtual void OnRep_PrimaryClipAmmo(int32 OldPrimaryClipAmmo);
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
+	int32 MaxPrimaryClipAmmo;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
+	int32 PrimaryCartridgeAmmo;
+
+	// What kind of Ammo is used in this weapon.
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
+	FGameplayTag PrimaryAmmoType;
+
+	// Init the FireMode while character pick the weapon up
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive")
+	FGameplayTag DefaultFireMode;
+
+	// Only the client's fire action will be affected. Server do not care about it.
+	UPROPERTY(BlueprintReadWrite, Category = "Alive")
+	FGameplayTag FireMode;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
+	float MaxSpreadAngle;
+
+private:
+	// Updates the spread
+	void UpdateSpread(float DeltaSeconds);
+
+	// The current spread angle (in degrees, diametrical)
+	float CurrentSpreadAngle = 0.0f;
+
+public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	// Cache the activatable abilities added by this weapon
+	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
 
 protected:
 	UPROPERTY()
@@ -116,8 +138,4 @@ private:
 	int32 GetWeaponAbilityLevel() const;
 	// Cache tag
 	FGameplayTag WeaponIsFiringTag;
-
-public:
-	// Cache the activatable abilities added by this weapon
-	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
 };
