@@ -26,6 +26,18 @@ UProjectileComponent::UProjectileComponent()
 	TargetMaximumVelocity = 6.0f;
 }
 
+void UProjectileComponent::FireOneProjectile(const FGameplayAbilityTargetData* TargetData)
+{
+	const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData = static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(TargetData);
+
+	if (MyTargetData)
+	{
+		UE_LOG(LogProjectile, Warning, TEXT("FireOneProjectile: ID: %d , Dir: %s"), MyTargetData->ProjectileID,
+		       *MyTargetData->Direction.ToString());
+		ProjectileInstances.Emplace(MyTargetData->ProjectileID, OwningWeapon->GetFirePointWorldLocation(), MyTargetData->Direction);
+	}
+}
+
 void UProjectileComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -101,10 +113,10 @@ void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Project
 	switch (ProjectileType)
 	{
 	case EProjectileType::Velocity:
-		Projectile.CurrentLocation += Projectile.InitRotation.Vector() * 100.0f * Velocity * RealUpdateInterval;
+		Projectile.CurrentLocation += Projectile.InitDirection * 100.0f * Velocity * RealUpdateInterval;
 		break;
 	case EProjectileType::VelocityAndGravity:
-		Projectile.CurrentLocation += Projectile.InitRotation.Vector() * 100.0f * Velocity * RealUpdateInterval;
+		Projectile.CurrentLocation += Projectile.InitDirection * 100.0f * Velocity * RealUpdateInterval;
 		Projectile.CurrentLocation.Z -= 0.5f * 100.0f * Gravity * (FMath::Square(Projectile.ElapsedTime) - FMath::Square(LastElapsedTime));
 		break;
 	default:
@@ -112,8 +124,8 @@ void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Project
 		break;
 	}
 
-	
-	//TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
+	TArray<FHitResult> HitResults;
+	TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
 }
 
 void UProjectileComponent::ServerHitResultCheck_Implementation(uint16 CheckKey, FHitResult HitResult)

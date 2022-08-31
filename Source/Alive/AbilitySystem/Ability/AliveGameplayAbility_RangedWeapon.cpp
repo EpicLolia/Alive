@@ -150,6 +150,16 @@ void UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback(const FGamepl
 	}
 }
 
+void UAliveGameplayAbility_RangedWeapon::OnRangedWeaponTargetDataReady_Implementation(const FGameplayAbilityTargetDataHandle& TargetData)
+{
+	UProjectileComponent* ProjectileComp = GetSourceWeapon()->GetProjectileComponent();
+	check(ProjectileComp);
+	for (const auto& Data : TargetData.Data)
+	{
+		ProjectileComp->FireOneProjectile(Data.Get());
+	}
+}
+
 void UAliveGameplayAbility_RangedWeapon::TraceAndDrawDebug(TArray<FHitResult>& OutHits, const FVector& Start, const FVector& End)
 {
 	TArray<AActor*> ActorsToIgnore;
