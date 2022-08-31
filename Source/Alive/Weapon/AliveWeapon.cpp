@@ -4,7 +4,6 @@
 
 #include "AbilitySystem/AliveAbilitySystemComponent.h"
 #include "AbilitySystem/Ability/AliveGameplayAbility.h"
-#include "AbilitySystem/Ability/TargetActor/TA_LineTrace.h"
 #include "Character/AliveCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -103,16 +102,6 @@ FVector AAliveWeapon::GetFirePointWorldLocation() const
 void AAliveWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-}
-
-void AAliveWeapon::EndPlay(EEndPlayReason::Type EndPlayReason)
-{
-	if (LineTraceTargetActor)
-	{
-		LineTraceTargetActor->Destroy();
-	}
-
-	Super::EndPlay(EndPlayReason);
 }
 
 void AAliveWeapon::SetPrimaryClipAmmo(int32 Ammo)

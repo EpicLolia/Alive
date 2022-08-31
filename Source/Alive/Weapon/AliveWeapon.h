@@ -28,8 +28,6 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
-
 public:
 	int32 GetPrimaryClipAmmo() const { return PrimaryClipAmmo; }
 	int32 GetMaxPrimaryClipAmmo() const { return MaxPrimaryClipAmmo; }
@@ -109,9 +107,6 @@ protected:
 	//Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|Abilities")
 	TArray<TSubclassOf<class UAliveGameplayAbility>> WeaponAbilities;
-
-	UPROPERTY()
-	class ATA_LineTrace* LineTraceTargetActor;
 
 private:
 	// Only add or remove ability on server. It will auto sync to client.

@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbilityTargetActor.h"
-#include "TA_Trace.generated.h"
+#include "AliveTargetActor_Trace.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class ALIVE_API ATA_Trace : public AGameplayAbilityTargetActor
+class ALIVE_API AAliveTargetActor_Trace : public AGameplayAbilityTargetActor
 {
 	GENERATED_BODY()
 	
