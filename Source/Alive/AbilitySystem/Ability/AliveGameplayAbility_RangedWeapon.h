@@ -18,6 +18,7 @@ public:
 	UAliveGameplayAbility_RangedWeapon();
 
 	//~UGameplayAbility interface
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	//~End of UGameplayAbility interface
 
@@ -25,7 +26,7 @@ public:
 	
 protected:
 	UFUNCTION(BlueprintCallable)
-	void StartRangedWeaponTargeting();
+	void StartTargetingLocally();
 	
 	void OnTargetDataReadyCallback(const FGameplayAbilityTargetDataHandle& InData, FGameplayTag ApplicationTag);
 
@@ -41,6 +42,4 @@ private:
 	// Maybe we hit the teammate.
 	int32 FindFirstValidTargettingResult(const TArray<FHitResult>& HitResults);
 	void GenerateProjectileDirection(TArray<FVector>& ProjectileDirections);
-
-	void OnTargetDataReplicatedCallback(const FGameplayAbilityTargetDataHandle& Data, FGameplayTag ActivationTag);
 };

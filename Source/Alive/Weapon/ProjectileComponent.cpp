@@ -28,8 +28,8 @@ UProjectileComponent::UProjectileComponent()
 
 void UProjectileComponent::FireOneProjectile(const FGameplayAbilityTargetData* TargetData)
 {
-	const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData = static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(TargetData);
-
+	const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData = static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(
+		TargetData);
 	if (MyTargetData)
 	{
 		UE_LOG(LogProjectile, Warning, TEXT("FireOneProjectile: ID: %d , Dir: %s"), MyTargetData->ProjectileID,

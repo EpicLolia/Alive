@@ -23,7 +23,7 @@ AAliveWeapon::AAliveWeapon()
 	MaxPrimaryClipAmmo = 30;
 	PrimaryCartridgeAmmo = 1;
 	PrimaryAmmoType = FGameplayTag::RequestGameplayTag(FName("Weapon.Ammo.None"));
-	MaxSpreadAngle = 10.0f;
+	MaxSpreadAngle = 15.0f;
 
 	ProjectileComponent = CreateDefaultSubobject<UProjectileComponent>(FName("ProjectileComponent"));
 
@@ -192,5 +192,5 @@ void AAliveWeapon::OnRep_PrimaryClipAmmo(int32 OldPrimaryClipAmmo)
 
 void AAliveWeapon::UpdateSpread(float DeltaSeconds)
 {
-	CurrentSpreadAngle = FMath::Max(CurrentSpreadAngle - DeltaSeconds * 5.0f, 0.0f);
+	CurrentSpreadAngle = FMath::Max(CurrentSpreadAngle - DeltaSeconds * MaxSpreadAngle, 0.0f);
 }

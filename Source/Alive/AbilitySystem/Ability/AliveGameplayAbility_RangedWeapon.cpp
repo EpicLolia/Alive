@@ -14,12 +14,10 @@
 /**
  * Copy from Lyra.
  */
-FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngleRad, const float Exponent)
+FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngleDegrees, const float Exponent)
 {
-	if (ConeHalfAngleRad > 0.f)
+	if (ConeHalfAngleDegrees > 0.f)
 	{
-		const float ConeHalfAngleDegrees = FMath::RadiansToDegrees(ConeHalfAngleRad);
-
 		// consider the cone a concatenation of two rotations. one "away" from the center line, and another "around" the circle
 		// apply the exponent to the away-from-center rotation. a larger exponent will cluster points more tightly around the center
 		const float FromCenter = FMath::Pow(FMath::FRand(), Exponent);
@@ -45,9 +43,24 @@ UAliveGameplayAbility_RangedWeapon::UAliveGameplayAbility_RangedWeapon()
 {
 }
 
-void UAliveGameplayAbility_RangedWeapon::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
-                                                    const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility,
-                                                    bool bWasCancelled)
+void UAliveGameplayAbility_RangedWeapon::ActivateAbility(
+	const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+{
+	// Bind target data callback
+	UAbilitySystemComponent* MyAbilityComponent = CurrentActorInfo->AbilitySystemComponent.Get();
+	check(MyAbilityComponent);
+
+	OnTargetDataReadyCallbackDelegateHandle = MyAbilityComponent->AbilityTargetDataSetDelegate(
+		CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey()).AddUObject(
+		this, &UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback);
+
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+}
+
+void UAliveGameplayAbility_RangedWeapon::EndAbility(
+	const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
 	if (IsEndAbilityValid(Handle, ActorInfo))
 	{
@@ -62,8 +75,8 @@ void UAliveGameplayAbility_RangedWeapon::EndAbility(const FGameplayAbilitySpecHa
 		check(MyAbilityComponent);
 
 		// When ability ends, consume target data and remove delegate
-		MyAbilityComponent->AbilityTargetDataSetDelegate(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey()).Remove(
-			OnTargetDataReadyCallbackDelegateHandle);
+		MyAbilityComponent->AbilityTargetDataSetDelegate(
+			CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey()).Remove(OnTargetDataReadyCallbackDelegateHandle);
 		MyAbilityComponent->ConsumeClientReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey());
 
 		Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -79,8 +92,13 @@ AAliveWeapon* UAliveGameplayAbility_RangedWeapon::GetSourceWeapon() const
 	return nullptr;
 }
 
-void UAliveGameplayAbility_RangedWeapon::StartRangedWeaponTargeting()
+void UAliveGameplayAbility_RangedWeapon::StartTargetingLocally()
 {
+	if (!CurrentActorInfo->IsLocallyControlled())
+	{
+		return;
+	}
+
 	TArray<FVector> ProjectileDirections;
 
 	GenerateProjectileDirection(ProjectileDirections);
@@ -111,49 +129,37 @@ void UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback(const FGamepl
 {
 	UAbilitySystemComponent* MyAbilityComponent = CurrentActorInfo->AbilitySystemComponent.Get();
 	check(MyAbilityComponent);
+	const FGameplayAbilitySpec* AbilitySpec = MyAbilityComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
+	check(AbilitySpec);
 
-	if (const FGameplayAbilitySpec* AbilitySpec = MyAbilityComponent->FindAbilitySpecFromHandle(CurrentSpecHandle))
+	FScopedPredictionWindow ScopedPrediction(MyAbilityComponent, IsPredictingClient());
+
+	// Take ownership of the target data to make sure no callbacks into game code invalidate it out from under us
+	FGameplayAbilityTargetDataHandle LocalTargetDataHandle(MoveTemp(const_cast<FGameplayAbilityTargetDataHandle&>(InData)));
+
+	// Call the server
+	if (CurrentActorInfo->IsLocallyControlled() && !CurrentActorInfo->IsNetAuthority())
 	{
-		FScopedPredictionWindow ScopedPrediction(MyAbilityComponent, IsPredictingClient());
-
-		// Take ownership of the target data to make sure no callbacks into game code invalidate it out from under us
-		FGameplayAbilityTargetDataHandle LocalTargetDataHandle(MoveTemp(const_cast<FGameplayAbilityTargetDataHandle&>(InData)));
-
-		if (CurrentActorInfo->IsLocallyControlled())
-		{
-			AAliveWeapon* MyWeapon = GetSourceWeapon();
-			check(MyWeapon);
-			MyWeapon->AddSpread();
-
-			// Let the blueprint do stuff like apply effects to the targets
-			OnRangedWeaponTargetDataReady(LocalTargetDataHandle);
-			if (!CurrentActorInfo->IsNetAuthority())
-			{
-				MyAbilityComponent->CallServerSetReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey(),
-				                                                      InData, ApplicationTag,
-				                                                      MyAbilityComponent->ScopedPredictionKey);
-			}
-		}
-		else if (HasAuthority(&CurrentActivationInfo))
-		{
-			//Since multifire is supported, we still need to hook up the callbacks
-			MyAbilityComponent->AbilityTargetDataSetDelegate(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey()).
-			                    AddUObject(
-				                    this, &UAliveGameplayAbility_RangedWeapon::OnTargetDataReplicatedCallback);
-
-			MyAbilityComponent->CallReplicatedTargetDataDelegatesIfSet(CurrentSpecHandle,
-			                                                           CurrentActivationInfo.GetActivationPredictionKey());
-
-			// We've processed the data
-			MyAbilityComponent->ConsumeClientReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey());
-		}
+		MyAbilityComponent->CallServerSetReplicatedTargetData(
+			CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey(),
+			LocalTargetDataHandle, ApplicationTag, MyAbilityComponent->ScopedPredictionKey);
 	}
+	AAliveWeapon* MyWeapon = GetSourceWeapon();
+	check(MyWeapon);
+	MyWeapon->AddSpread();
+
+	// Let the blueprint do stuff like apply effects to the targets
+	OnRangedWeaponTargetDataReady(LocalTargetDataHandle);
+
+	// We've processed the data
+	MyAbilityComponent->ConsumeClientReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey());
 }
 
 void UAliveGameplayAbility_RangedWeapon::OnRangedWeaponTargetDataReady_Implementation(const FGameplayAbilityTargetDataHandle& TargetData)
 {
 	UProjectileComponent* ProjectileComp = GetSourceWeapon()->GetProjectileComponent();
 	check(ProjectileComp);
+
 	for (const auto& Data : TargetData.Data)
 	{
 		ProjectileComp->FireOneProjectile(Data.Get());
@@ -174,7 +180,7 @@ void UAliveGameplayAbility_RangedWeapon::TraceAndDrawDebug(TArray<FHitResult>& O
 #if ENABLE_DRAW_DEBUG
 	//if (bDrawDebug)
 	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 3.0f, 0, 5);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Blue, false, 3.0f, 0, 5);
 	}
 #endif
 }
@@ -186,7 +192,12 @@ int32 UAliveGameplayAbility_RangedWeapon::FindFirstValidTargettingResult(const T
 		const FHitResult& CurrentHitResult = HitResults[Idx];
 		// TODO: Ignore Teammate
 		// ...
-		return Idx;
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange,
+		                                 FString::Printf(TEXT("Distance is: %f"), CurrentHitResult.Distance));
+		if (CurrentHitResult.Distance > 100.0f)
+		{
+			return Idx;
+		}
 	}
 	return INDEX_NONE;
 }
@@ -197,12 +208,6 @@ void UAliveGameplayAbility_RangedWeapon::GenerateProjectileDirection(TArray<FVec
 	check(MyCharacter);
 	AAliveWeapon* const MyWeapon = GetSourceWeapon();
 	check(MyWeapon);
-
-	// Only do trace in local player
-	if (!MyCharacter->IsLocallyControlled())
-	{
-		return;
-	}
 
 	const FVector TraceStart = MyCharacter->GetCameraBoom()->GetComponentLocation();
 	const FVector TraceEnd = MyCharacter->GetBaseAimRotation().Vector() *
@@ -217,22 +222,16 @@ void UAliveGameplayAbility_RangedWeapon::GenerateProjectileDirection(TArray<FVec
 	for (int32 bullet = 0; bullet < MyWeapon->GetPrimaryCartridgeAmmo(); ++bullet)
 	{
 		FVector AimDirAfterSpread = VRandConeNormalDistribution(
-			MyCharacter->GetBaseAimRotation().Vector(), MyWeapon->GetCurrentSpreadAngle() / 2, 1.0f);
+			MyCharacter->GetBaseAimRotation().Vector(), MyWeapon->GetCurrentSpreadAngle() / 2.0f, 1.0f);
 		FVector TargetPoint;
 		if (ValidHitIndex == INDEX_NONE)
 		{
-			TargetPoint = AimDirAfterSpread * MyWeapon->GetProjectileComponent()->GetRange() * 100.0f;
+			TargetPoint = AimDirAfterSpread * MyWeapon->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
 		}
 		else
 		{
-			TargetPoint = AimDirAfterSpread * FoundHits[ValidHitIndex].Distance;
+			TargetPoint = AimDirAfterSpread * FoundHits[ValidHitIndex].Distance + TraceStart;
 		}
 		ProjectileDirections.Emplace((TargetPoint - MyWeapon->GetFirePointWorldLocation()).GetSafeNormal());
 	}
-}
-
-void UAliveGameplayAbility_RangedWeapon::OnTargetDataReplicatedCallback(const FGameplayAbilityTargetDataHandle& Data,
-                                                                        FGameplayTag ActivationTag)
-{
-	OnRangedWeaponTargetDataReady(Data);
 }
