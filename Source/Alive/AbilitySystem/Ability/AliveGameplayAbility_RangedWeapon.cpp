@@ -38,6 +38,7 @@ FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngl
 UAliveGameplayAbility_RangedWeapon::UAliveGameplayAbility_RangedWeapon()
 {
 	HitDamageMultiplier = 1.0f;
+	HitEffect = UGameplayEffect::StaticClass();
 }
 
 void UAliveGameplayAbility_RangedWeapon::ActivateAbility(
@@ -167,32 +168,37 @@ void UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback(
 			LocalTargetDataHandle, ApplicationTag, MyAbilityComponent->ScopedPredictionKey);
 	}
 
-	// Let the blueprint do stuff like apply effects to the targets
-	OnProjectileFire(LocalTargetDataHandle);
+	FireProjectile(LocalTargetDataHandle);
 
 	// We've processed the data
 	MyAbilityComponent->ConsumeClientReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey());
 }
 
-void UAliveGameplayAbility_RangedWeapon::OnProjectileFire_Implementation(const FGameplayAbilityTargetDataHandle& TargetData)
+void UAliveGameplayAbility_RangedWeapon::FireProjectile(const FGameplayAbilityTargetDataHandle& TargetData)
 {
 	UProjectileComponent* ProjectileComp = GetSourceWeapon()->GetProjectileComponent();
 	check(ProjectileComp);
-	
-	FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(HitEffect, GetAbilityLevel());
-	EffectSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Damage")), HitDamageMultiplier);
 
 	if (CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
 	{
+		// Only Handle Effect on the server
+		FGameplayEffectSpecHandle EffectSpecHandle;
+		if (GetCurrentActorInfo()->IsNetAuthority())
+		{
+			EffectSpecHandle = MakeOutgoingGameplayEffectSpec(HitEffect, GetAbilityLevel());
+			EffectSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Damage")), HitDamageMultiplier);
+		}
+
 		GetSourceWeapon()->AddSpread();
 		for (const auto& Data : TargetData.Data)
 		{
 			const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData =
 				static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(Data.Get());
 
-			ProjectileComp->FireOneProjectile(TargetData.UniqueId, GetSourceWeapon()->GetFirePointWorldLocation(),
-			                                  MyTargetData->Direction, EffectSpecHandle);
+			ProjectileComp->FireOneProjectile(TargetData.UniqueId, MyTargetData->SourceLocation, MyTargetData->Direction, EffectSpecHandle);
 		}
+		// Let the blueprint do stuff  
+		OnProjectileFired(TargetData);
 	}
 	else
 	{

@@ -37,9 +37,11 @@ protected:
 	void OnTargetDataReadyCallback(const FGameplayAbilityTargetDataHandle& InData, FGameplayTag ApplicationTag);
 
 	// Called when target data is ready. Will check and commit cost
-	UFUNCTION(BlueprintNativeEvent)
-	void OnProjectileFire(const FGameplayAbilityTargetDataHandle& TargetData);
-	void OnProjectileFire_Implementation(const FGameplayAbilityTargetDataHandle& TargetData);
+	void FireProjectile(const FGameplayAbilityTargetDataHandle& TargetData);
+
+	// Called when projectile is fired. Used to handle cues.
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnProjectileFired(const FGameplayAbilityTargetDataHandle& TargetData);
 	
 private:
 	FDelegateHandle OnTargetDataReadyCallbackDelegateHandle;
