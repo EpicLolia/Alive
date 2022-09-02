@@ -10,10 +10,6 @@
 #include "Weapon/AliveWeapon.h"
 #include "Weapon/ProjectileComponent.h"
 
-
-/**
- * Copy from Lyra.
- */
 FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngleDegrees, const float Exponent)
 {
 	if (ConeHalfAngleDegrees > 0.f)
@@ -41,6 +37,7 @@ FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngl
 
 UAliveGameplayAbility_RangedWeapon::UAliveGameplayAbility_RangedWeapon()
 {
+	HitDamageMultiplier = 1.0f;
 }
 
 void UAliveGameplayAbility_RangedWeapon::ActivateAbility(
@@ -99,38 +96,63 @@ void UAliveGameplayAbility_RangedWeapon::StartTargetingLocally()
 		return;
 	}
 
-	TArray<FVector> ProjectileDirections;
-
-	GenerateProjectileDirection(ProjectileDirections);
-
 	// Fill out the target data from the hit results
-	FGameplayAbilityTargetDataHandle TargetData;
+	FGameplayAbilityTargetDataHandle TargetDataHandle;
 
-	if (ProjectileDirections.Num() > 0)
-	{
-		const int16 ProjectileID = FMath::Rand();
-		for (const FVector& Direction : ProjectileDirections)
-		{
-			FGameplayAbilityTargetData_GenerateProjectile* NewTargetData = new FGameplayAbilityTargetData_GenerateProjectile();
-			// Directly use the unique predictionKey 
-			NewTargetData->ProjectileID = ProjectileID;
-			NewTargetData->Direction = Direction;
-
-			TargetData.Add(NewTargetData);
-		}
-	}
+	GenerateProjectileTargetDataHandle(TargetDataHandle);
 
 	// Process the target data immediately
-	OnTargetDataReadyCallback(TargetData, FGameplayTag());
+	OnTargetDataReadyCallback(TargetDataHandle, FGameplayTag());
 }
 
-void UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback(const FGameplayAbilityTargetDataHandle& InData,
-                                                                   FGameplayTag ApplicationTag)
+void UAliveGameplayAbility_RangedWeapon::GenerateProjectileTargetDataHandle(FGameplayAbilityTargetDataHandle& TargetDataHandle)
+{
+	for (int32 bullet = 0; bullet < GetSourceWeapon()->GetPrimaryCartridgeAmmo(); ++bullet)
+	{
+		TargetDataHandle.Add(GenerateProjectileTargetData());
+	}
+	TargetDataHandle.UniqueId = FMath::Rand();
+}
+
+FGameplayAbilityTargetData* UAliveGameplayAbility_RangedWeapon::GenerateProjectileTargetData()
+{
+	APlayerCharacter* const MyCharacter = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
+	check(MyCharacter);
+
+	const FVector TraceStart = MyCharacter->GetCameraBoom()->GetComponentLocation();
+	const FVector TraceEnd = MyCharacter->GetBaseAimRotation().Vector() *
+		GetSourceWeapon()->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
+
+	TArray<FHitResult> FoundHits;
+	TraceAndDrawDebug(/*out*/ FoundHits, TraceStart, TraceEnd);
+	int32 ValidHitIndex = FindFirstValidTargettingResult(FoundHits);
+
+
+	FVector AimDirAfterSpread = VRandConeNormalDistribution(
+		MyCharacter->GetBaseAimRotation().Vector(), GetSourceWeapon()->GetCurrentSpreadAngle() / 2.0f, 1.0f);
+	FVector TargetPoint;
+	if (ValidHitIndex == INDEX_NONE)
+	{
+		TargetPoint = AimDirAfterSpread * GetSourceWeapon()->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
+	}
+	else
+	{
+		TargetPoint = AimDirAfterSpread * FoundHits[ValidHitIndex].Distance + TraceStart;
+	}
+
+	FGameplayAbilityTargetData_GenerateProjectile* TargetData = new FGameplayAbilityTargetData_GenerateProjectile();
+
+	TargetData->SourceLocation = GetSourceWeapon()->GetFirePointWorldLocation();
+	TargetData->Direction = (TargetPoint - GetSourceWeapon()->GetFirePointWorldLocation()).GetSafeNormal();
+
+	return TargetData;
+}
+
+void UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback(
+	const FGameplayAbilityTargetDataHandle& InData, FGameplayTag ApplicationTag)
 {
 	UAbilitySystemComponent* MyAbilityComponent = CurrentActorInfo->AbilitySystemComponent.Get();
 	check(MyAbilityComponent);
-	const FGameplayAbilitySpec* AbilitySpec = MyAbilityComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
-	check(AbilitySpec);
 
 	FScopedPredictionWindow ScopedPrediction(MyAbilityComponent, IsPredictingClient());
 
@@ -144,25 +166,37 @@ void UAliveGameplayAbility_RangedWeapon::OnTargetDataReadyCallback(const FGamepl
 			CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey(),
 			LocalTargetDataHandle, ApplicationTag, MyAbilityComponent->ScopedPredictionKey);
 	}
-	AAliveWeapon* MyWeapon = GetSourceWeapon();
-	check(MyWeapon);
-	MyWeapon->AddSpread();
 
 	// Let the blueprint do stuff like apply effects to the targets
-	OnRangedWeaponTargetDataReady(LocalTargetDataHandle);
+	OnProjectileFire(LocalTargetDataHandle);
 
 	// We've processed the data
 	MyAbilityComponent->ConsumeClientReplicatedTargetData(CurrentSpecHandle, CurrentActivationInfo.GetActivationPredictionKey());
 }
 
-void UAliveGameplayAbility_RangedWeapon::OnRangedWeaponTargetDataReady_Implementation(const FGameplayAbilityTargetDataHandle& TargetData)
+void UAliveGameplayAbility_RangedWeapon::OnProjectileFire_Implementation(const FGameplayAbilityTargetDataHandle& TargetData)
 {
 	UProjectileComponent* ProjectileComp = GetSourceWeapon()->GetProjectileComponent();
 	check(ProjectileComp);
+	
+	FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(HitEffect, GetAbilityLevel());
+	EffectSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Damage")), HitDamageMultiplier);
 
-	for (const auto& Data : TargetData.Data)
+	if (CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
 	{
-		ProjectileComp->FireOneProjectile(Data.Get());
+		GetSourceWeapon()->AddSpread();
+		for (const auto& Data : TargetData.Data)
+		{
+			const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData =
+				static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(Data.Get());
+
+			ProjectileComp->FireOneProjectile(TargetData.UniqueId, GetSourceWeapon()->GetFirePointWorldLocation(),
+			                                  MyTargetData->Direction, EffectSpecHandle);
+		}
+	}
+	else
+	{
+		K2_EndAbility();
 	}
 }
 
@@ -200,38 +234,4 @@ int32 UAliveGameplayAbility_RangedWeapon::FindFirstValidTargettingResult(const T
 		}
 	}
 	return INDEX_NONE;
-}
-
-void UAliveGameplayAbility_RangedWeapon::GenerateProjectileDirection(TArray<FVector>& ProjectileDirections)
-{
-	APlayerCharacter* const MyCharacter = Cast<APlayerCharacter>(GetAvatarActorFromActorInfo());
-	check(MyCharacter);
-	AAliveWeapon* const MyWeapon = GetSourceWeapon();
-	check(MyWeapon);
-
-	const FVector TraceStart = MyCharacter->GetCameraBoom()->GetComponentLocation();
-	const FVector TraceEnd = MyCharacter->GetBaseAimRotation().Vector() *
-		MyWeapon->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
-
-	TArray<FHitResult> FoundHits;
-
-	TraceAndDrawDebug(/*out*/ FoundHits, TraceStart, TraceEnd);
-
-	int32 ValidHitIndex = FindFirstValidTargettingResult(FoundHits);
-
-	for (int32 bullet = 0; bullet < MyWeapon->GetPrimaryCartridgeAmmo(); ++bullet)
-	{
-		FVector AimDirAfterSpread = VRandConeNormalDistribution(
-			MyCharacter->GetBaseAimRotation().Vector(), MyWeapon->GetCurrentSpreadAngle() / 2.0f, 1.0f);
-		FVector TargetPoint;
-		if (ValidHitIndex == INDEX_NONE)
-		{
-			TargetPoint = AimDirAfterSpread * MyWeapon->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
-		}
-		else
-		{
-			TargetPoint = AimDirAfterSpread * FoundHits[ValidHitIndex].Distance + TraceStart;
-		}
-		ProjectileDirections.Emplace((TargetPoint - MyWeapon->GetFirePointWorldLocation()).GetSafeNormal());
-	}
 }

@@ -26,16 +26,10 @@ UProjectileComponent::UProjectileComponent()
 	TargetMaximumVelocity = 6.0f;
 }
 
-void UProjectileComponent::FireOneProjectile(const FGameplayAbilityTargetData* TargetData)
+void UProjectileComponent::FireOneProjectile(uint8 ProjrctileID, const FVector& Location, const FVector& Direction,
+                                             const FGameplayEffectSpecHandle& HitEffectSpecHandle)
 {
-	const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData = static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(
-		TargetData);
-	if (MyTargetData)
-	{
-		UE_LOG(LogProjectile, Warning, TEXT("FireOneProjectile: ID: %d , Dir: %s"), MyTargetData->ProjectileID,
-		       *MyTargetData->Direction.ToString());
-		ProjectileInstances.Emplace(MyTargetData->ProjectileID, OwningWeapon->GetFirePointWorldLocation(), MyTargetData->Direction);
-	}
+	ProjectileInstances.Emplace(ProjrctileID, Location, Direction, HitEffectSpecHandle);
 }
 
 void UProjectileComponent::BeginPlay()
@@ -128,8 +122,9 @@ void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Project
 	TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
 }
 
-void UProjectileComponent::ServerHitResultCheck_Implementation(uint16 CheckKey, FHitResult HitResult)
+void UProjectileComponent::ServerCheckHitResult_Implementation(uint16 CheckKey, FHitResult HitResult)
 {
+
 }
 
 void UProjectileComponent::CalculateWaitHitResultFrames()
