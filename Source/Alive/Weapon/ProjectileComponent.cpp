@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ProjectileComponent.h"
+
+#include "AbilitySystemComponent.h"
 #include "AliveWeapon.h"
 #include "Alive.h"
 #include "Character/AliveCharacter.h"
@@ -70,7 +72,7 @@ void UProjectileComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 	}
 }
 
-void UProjectileComponent::TraceAndDrawDebug(TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const
+void UProjectileComponent::TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const
 {
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(OwningWeapon->GetOwningCharacter());
@@ -88,6 +90,25 @@ void UProjectileComponent::TraceAndDrawDebug(TArray<FHitResult>& HitResults, con
 		DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 3.0f, 0, 5);
 	}
 #endif
+}
+
+void UProjectileComponent::ProcessHitResults(FProjectileInstance& Projectile, const TArray<FHitResult>& HitResults)
+{
+	for (const auto& HitResult : HitResults)
+	{
+		if (Cast<AAliveCharacter>(HitResult.GetActor()))
+		{
+			if (!Projectile.HitEffect.IsValid() || Projectile.HitEffect.Data->GetContext().IsLocallyControlled())
+			{
+				ServerCheckHitResult(Projectile.ProjectileID, HitResult);
+				Projectile.bPendingKill = true;
+			}
+		}
+		else if (HitResult.bBlockingHit)
+		{
+			Projectile.bPendingKill = true;
+		}
+	}
 }
 
 void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Projectile)
@@ -120,11 +141,25 @@ void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Project
 
 	TArray<FHitResult> HitResults;
 	TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
+
+	ProcessHitResults(Projectile, HitResults);
 }
 
-void UProjectileComponent::ServerCheckHitResult_Implementation(uint16 CheckKey, FHitResult HitResult)
+void UProjectileComponent::ServerCheckHitResult_Implementation(uint8 ProjectileID, FHitResult HitResult)
 {
+	for (const auto Projectile : ProjectileInstances)
+	{
+		if (Projectile.ProjectileID == ProjectileID)
+		{
+			FGameplayEffectContextHandle Context = Projectile.HitEffect.Data->GetContext();
+			check(Context.IsValid());
 
+			Context.AddHitResult(HitResult);
+
+			Context.GetInstigatorAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(
+				*Projectile.HitEffect.Data, Cast<AAliveCharacter>(HitResult.GetActor())->GetAbilitySystemComponent());
+		}
+	}
 }
 
 void UProjectileComponent::CalculateWaitHitResultFrames()

@@ -37,6 +37,7 @@ FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngl
 
 UAliveGameplayAbility_RangedWeapon::UAliveGameplayAbility_RangedWeapon()
 {
+	bDrawDebug = false;
 	HitDamageMultiplier = 1.0f;
 	HitEffect = UGameplayEffect::StaticClass();
 }
@@ -218,7 +219,7 @@ void UAliveGameplayAbility_RangedWeapon::TraceAndDrawDebug(TArray<FHitResult>& O
 	GetWorld()->LineTraceMultiByChannel(OutHits, Start, End, ECC_Projectile, Params);
 
 #if ENABLE_DRAW_DEBUG
-	//if (bDrawDebug)
+	if (bDrawDebug)
 	{
 		DrawDebugLine(GetWorld(), Start, End, FColor::Blue, false, 3.0f, 0, 5);
 	}
@@ -232,8 +233,6 @@ int32 UAliveGameplayAbility_RangedWeapon::FindFirstValidTargettingResult(const T
 		const FHitResult& CurrentHitResult = HitResults[Idx];
 		// TODO: Ignore Teammate
 		// ...
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange,
-		                                 FString::Printf(TEXT("Distance is: %f"), CurrentHitResult.Distance));
 		if (CurrentHitResult.Distance > 100.0f)
 		{
 			return Idx;

@@ -45,7 +45,9 @@ void UDamageExecution::Execute_Implementation(const FGameplayEffectCustomExecuti
 	ExecutionParams.AttemptCalculateCapturedAttributeMagnitude(DamageStatics().AttackDef, EvaluateParameters, Attack);
 	Attack = FMath::Max<float>(Attack, 0.0f);
 
-	const float DamageDone = Attack;
+	float DamageMultipler = Spec.GetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Damage")), false, 1.0f);
+	
+	const float DamageDone = Attack * DamageMultipler;
 	if (DamageDone > 0.0f)
 	{
 		OutExecutionOutput.AddOutputModifier(

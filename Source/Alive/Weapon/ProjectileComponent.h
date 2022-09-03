@@ -102,13 +102,14 @@ protected:
 private:
 	TArray<FProjectileInstance> ProjectileInstances;
 
-	void TraceAndDrawDebug(TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const;
+	void TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const;
 
+	void ProcessHitResults(FProjectileInstance& Projectile, const TArray<FHitResult>& HitResults);
 	void UpdateProjectileOneFrame(FProjectileInstance& Projectile);
 
 	UFUNCTION(Server, Reliable)
-	void ServerCheckHitResult(uint16 CheckKey, FHitResult HitResult);
-	void ServerCheckHitResult_Implementation(uint16 CheckKey, FHitResult HitResult);
+	void ServerCheckHitResult(uint8 ProjectileID, FHitResult HitResult);
+	void ServerCheckHitResult_Implementation(uint8 ProjectileID, FHitResult HitResult);
 
 	// A temp
 	float ElapsedTimeSinceLastUpdate = 0.0f;
