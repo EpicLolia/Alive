@@ -2,7 +2,7 @@
 
 本项目由UE4.27.2源码版本开发的一款第三人称PVE多人射击Demo
 
-工程展示：[【腾讯微云】演示视频](https://share.weiyun.com/NjZ9iMrA)
+工程展示：[【腾讯微云】作业工程、打包文件、演示视频](https://share.weiyun.com/NjZ9iMrA)
 
 ## How to build
 
