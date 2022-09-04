@@ -13,7 +13,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogProjectile, Log, All);
 
 UProjectileComponent::UProjectileComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 
 	UpdateFrequency = 10;
@@ -28,10 +28,16 @@ UProjectileComponent::UProjectileComponent()
 	TargetMaximumVelocity = 6.0f;
 }
 
-void UProjectileComponent::FireOneProjectile(uint8 ProjrctileID, const FVector& Location, const FVector& Direction,
-                                             const FGameplayEffectSpecHandle& HitEffectSpecHandle)
+void UProjectileComponent::GenerateProjectileInstance(uint8 ProjrctileID, const FVector& Location, const FVector& Direction)
 {
-	ProjectileInstances.Emplace(ProjrctileID, Location, Direction, HitEffectSpecHandle);
+	ProjectileInstances.Emplace(ProjrctileID, Location, Direction);
+}
+
+void UProjectileComponent::GenerateProjectileHandle(uint8 ProjectileID, const FGameplayEffectSpecHandle& HitEffectSpecHandle,
+                                                    int32 BulletsPerCartridge)
+{
+	check(OwningWeapon->HasAuthority());
+	ServerProjectileHandles.Emplace(ProjectileID, HitEffectSpecHandle, BulletsPerCartridge);
 }
 
 void UProjectileComponent::BeginPlay()
@@ -45,31 +51,50 @@ void UProjectileComponent::BeginPlay()
 	UpdateInterval = 1.0f / static_cast<float>(UpdateFrequency);
 	ProjectileLifespan = Range / Velocity;
 	CalculateWaitHitResultFrames();
+
+	OwningWeapon->GetWorldTimerManager().SetTimer(
+		ProjectileTickTimerHandle, this, &UProjectileComponent::ProjectileTick, UpdateInterval, true);
 }
 
-
-void UProjectileComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UProjectileComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	ElapsedTimeSinceLastUpdate += DeltaTime;
-	// Only loop once in theory when the tick rate is higher than UpdateFrequency
-	while (ElapsedTimeSinceLastUpdate >= UpdateInterval)
+	if (ProjectileTickTimerHandle.IsValid())
 	{
-		// A logical frame
-		for (auto& Projectile : ProjectileInstances)
-		{
-			UpdateProjectileOneFrame(Projectile);
-		}
-
-		// Clean up invalid ProjectileInstance
-		ProjectileInstances.RemoveAllSwap([](const FProjectileInstance& Projectile)
-		{
-			return Projectile.bPendingKill;
-		});
-
-		ElapsedTimeSinceLastUpdate -= UpdateInterval;
+		OwningWeapon->GetWorldTimerManager().ClearTimer(ProjectileTickTimerHandle);
 	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void UProjectileComponent::ProjectileTick()
+{
+	// A logical frame
+	for (auto& Projectile : ProjectileInstances)
+	{
+		UpdateProjectileOneFrame(Projectile);
+	}
+
+	for (auto& ProjectileHandle : ServerProjectileHandles)
+	{
+		++ProjectileHandle.ElapsedFrames;
+		// When the server wait times out
+		if (ProjectileHandle.ElapsedFrames >= ProjectileLifespan * UpdateFrequency + ServerWaitHitResultFrames)
+		{
+			ProjectileHandle.bPendingKill = true;
+		}
+	}
+
+	// Clean up invalid ProjectileInstance
+	ProjectileInstances.RemoveAllSwap([](const FProjectileInstance& Projectile)
+	{
+		return Projectile.bPendingKill;
+	});
+
+	// Clean up invalid ProjectileHandle
+	ServerProjectileHandles.RemoveAllSwap([](const FServerProjectileHandle& Projectile)
+	{
+		return Projectile.bPendingKill;
+	});
 }
 
 void UProjectileComponent::TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const
@@ -96,19 +121,28 @@ void UProjectileComponent::ProcessHitResults(FProjectileInstance& Projectile, co
 {
 	for (const auto& HitResult : HitResults)
 	{
-		if (Cast<AAliveCharacter>(HitResult.GetActor()))
+		if (Cast<AAliveCharacter>(HitResult.GetActor()) || HitResult.bBlockingHit)
 		{
-			if (!Projectile.HitEffect.IsValid() || Projectile.HitEffect.Data->GetContext().IsLocallyControlled())
-			{
-				ServerCheckHitResult(Projectile.ProjectileID, HitResult);
-				Projectile.bPendingKill = true;
-			}
-		}
-		else if (HitResult.bBlockingHit)
-		{
+			ServerCheckHitResult(Projectile.ProjectileID, ShrinkHitResult(HitResult));
 			Projectile.bPendingKill = true;
+
+			OnProjectileHit.Broadcast(HitResult);
+
+			break;
 		}
 	}
+}
+
+FHitResult UProjectileComponent::ShrinkHitResult(const FHitResult& HitResult) const
+{
+	FHitResult HitTemp = HitResult;
+	HitTemp.ImpactPoint = HitTemp.Location;
+	HitTemp.ImpactNormal = HitTemp.Normal;
+	HitTemp.Item = INDEX_NONE;
+	HitTemp.FaceIndex = INDEX_NONE;
+	HitTemp.PenetrationDepth = 0.0f;
+	HitTemp.ElementIndex = INDEX_NONE;
+	return HitTemp;
 }
 
 void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Projectile)
@@ -147,18 +181,41 @@ void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Project
 
 void UProjectileComponent::ServerCheckHitResult_Implementation(uint8 ProjectileID, FHitResult HitResult)
 {
-	for (const auto Projectile : ProjectileInstances)
+	for (auto& ProjectileHandle : ServerProjectileHandles)
 	{
-		if (Projectile.ProjectileID == ProjectileID)
+		if (ProjectileHandle.ProjectileID == ProjectileID)
 		{
-			FGameplayEffectContextHandle Context = Projectile.HitEffect.Data->GetContext();
-			check(Context.IsValid());
+			// If hit valid target
+			if (const AAliveCharacter* TargetCharacter = Cast<AAliveCharacter>(HitResult.GetActor()))
+			{
+				FGameplayEffectContextHandle Context = ProjectileHandle.HitEffect.Data->GetContext();
+				check(Context.IsValid());
 
-			Context.AddHitResult(HitResult);
+				Context.AddHitResult(HitResult);
 
-			Context.GetInstigatorAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(
-				*Projectile.HitEffect.Data, Cast<AAliveCharacter>(HitResult.GetActor())->GetAbilitySystemComponent());
+				Context.GetInstigatorAbilitySystemComponent()->ApplyGameplayEffectSpecToTarget(
+					*ProjectileHandle.HitEffect.Data, TargetCharacter->GetAbilitySystemComponent());
+			}
+
+			MulticastProjectileHit(HitResult);
+
+			--ProjectileHandle.NumPerCartridge;
+			if (ProjectileHandle.NumPerCartridge == 0)
+			{
+				ProjectileHandle.bPendingKill = true;
+			}
+
+			break;
 		}
+	}
+}
+
+void UProjectileComponent::MulticastProjectileHit_Implementation(FHitResult HitResult)
+{
+	// TODO: There is a bug here. Ths way can not work after the owner dead. The Causer may see hit effects twice.
+	if (!OwningWeapon->GetOwningCharacter() || !OwningWeapon->GetOwningCharacter()->IsLocallyControlled())
+	{
+		OnProjectileHit.Broadcast(HitResult);
 	}
 }
 

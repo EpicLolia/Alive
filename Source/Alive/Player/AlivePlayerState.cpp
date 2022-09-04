@@ -14,6 +14,7 @@ AAlivePlayerState::AAlivePlayerState()
 {
 	AbilitySystemComponent = CreateDefaultSubobject<UAliveAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
+	// Mixed Mode will replicated GameplayEffect to owner (Autonomous).
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	// 在构造函数中创建AttributeSet将会自动注册到ASC中

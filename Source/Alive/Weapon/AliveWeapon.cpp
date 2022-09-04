@@ -52,6 +52,7 @@ void AAliveWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME(AAliveWeapon,OwningCharacter);
 	DOREPLIFETIME_CONDITION(AAliveWeapon, PrimaryClipAmmo, COND_OwnerOnly);
 }
 

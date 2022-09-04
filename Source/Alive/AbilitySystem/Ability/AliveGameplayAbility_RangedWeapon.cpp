@@ -182,23 +182,27 @@ void UAliveGameplayAbility_RangedWeapon::FireProjectile(const FGameplayAbilityTa
 
 	if (CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
 	{
-		// Only Handle Effect on the server
-		FGameplayEffectSpecHandle EffectSpecHandle;
+		GetSourceWeapon()->AddSpread();
+		
+		// Only Handle Effect on the server.
 		if (GetCurrentActorInfo()->IsNetAuthority())
 		{
-			EffectSpecHandle = MakeOutgoingGameplayEffectSpec(HitEffect, GetAbilityLevel());
+			FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(HitEffect, GetAbilityLevel());
 			EffectSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Damage")), HitDamageMultiplier);
+			ProjectileComp->GenerateProjectileHandle(TargetData.UniqueId,EffectSpecHandle,TargetData.Num());
 		}
-
-		GetSourceWeapon()->AddSpread();
-		for (const auto& Data : TargetData.Data)
+		// Only Generate ProjectileInstance locally.
+		if(CurrentActorInfo->IsLocallyControlled())
 		{
-			const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData =
-				static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(Data.Get());
+			for (const auto& Data : TargetData.Data)
+			{
+				const FGameplayAbilityTargetData_GenerateProjectile* MyTargetData =
+					static_cast<const FGameplayAbilityTargetData_GenerateProjectile*>(Data.Get());
 
-			ProjectileComp->FireOneProjectile(TargetData.UniqueId, MyTargetData->SourceLocation, MyTargetData->Direction, EffectSpecHandle);
+				ProjectileComp->GenerateProjectileInstance(TargetData.UniqueId, MyTargetData->SourceLocation, MyTargetData->Direction);
+			}
 		}
-		// Let the blueprint do stuff  
+		// Let the blueprint do stuff
 		OnProjectileFired(TargetData);
 	}
 	else

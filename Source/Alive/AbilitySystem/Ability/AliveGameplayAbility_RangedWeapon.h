@@ -42,7 +42,7 @@ protected:
 	// Called when target data is ready. Will check and commit cost
 	void FireProjectile(const FGameplayAbilityTargetDataHandle& TargetData);
 
-	// Called when projectile is fired. Used to handle cues.
+	// Called when projectile is fired. Used to handle cues. Will be called once on both the server and client. 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnProjectileFired(const FGameplayAbilityTargetDataHandle& TargetData);
 	
