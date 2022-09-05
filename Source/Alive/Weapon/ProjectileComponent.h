@@ -124,9 +124,9 @@ private:
 	TArray<FServerProjectileHandle> ServerProjectileHandles;
 	TArray<FProjectileInstance> ProjectileInstances;
 	
-	void UpdateProjectileOneFrame(FProjectileInstance& Projectile);
+	void UpdateProjectileOneFrame(OUT TArray<FHitResult>& HitResults,OUT FProjectileInstance& Projectile);
 	void TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const;
-	void ProcessHitResults(FProjectileInstance& Projectile, const TArray<FHitResult>& HitResults);
+	void ProcessHitResults(OUT FProjectileInstance& Projectile, const TArray<FHitResult>& HitResults);
 
 	// Reduce memory for replicating. Return a copy of HitResult
 	FHitResult ShrinkHitResult(const FHitResult& HitResult) const;

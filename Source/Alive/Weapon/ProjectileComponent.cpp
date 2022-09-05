@@ -9,8 +9,6 @@
 #include "DrawDebugHelpers.h"
 #include "Net/UnrealNetwork.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogProjectile, Log, All);
-
 UProjectileComponent::UProjectileComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -71,30 +69,33 @@ void UProjectileComponent::ProjectileTick()
 	// A logical frame
 	for (auto& Projectile : ProjectileInstances)
 	{
-		UpdateProjectileOneFrame(Projectile);
+		TArray<FHitResult> HitResults;
+		UpdateProjectileOneFrame(HitResults, Projectile);
+		ProcessHitResults(Projectile, HitResults);
 	}
-
-	for (auto& ProjectileHandle : ServerProjectileHandles)
-	{
-		++ProjectileHandle.ElapsedFrames;
-		// When the server wait times out
-		if (ProjectileHandle.ElapsedFrames >= ProjectileLifespan * UpdateFrequency + ServerWaitHitResultFrames)
-		{
-			ProjectileHandle.bPendingKill = true;
-		}
-	}
-
 	// Clean up invalid ProjectileInstance
 	ProjectileInstances.RemoveAllSwap([](const FProjectileInstance& Projectile)
 	{
 		return Projectile.bPendingKill;
 	});
-
-	// Clean up invalid ProjectileHandle
-	ServerProjectileHandles.RemoveAllSwap([](const FServerProjectileHandle& Projectile)
+	
+	if (OwningWeapon->HasAuthority())
 	{
-		return Projectile.bPendingKill;
-	});
+		for (auto& ProjectileHandle : ServerProjectileHandles)
+		{
+			++ProjectileHandle.ElapsedFrames;
+			// When the server wait times out
+			if (ProjectileHandle.ElapsedFrames >= ProjectileLifespan * UpdateFrequency + ServerWaitHitResultFrames)
+			{
+				ProjectileHandle.bPendingKill = true;
+			}
+		}
+		// Clean up invalid ProjectileHandle
+		ServerProjectileHandles.RemoveAllSwap([](const FServerProjectileHandle& Projectile)
+		{
+			return Projectile.bPendingKill;
+		});
+	}
 }
 
 void UProjectileComponent::TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const
@@ -117,7 +118,7 @@ void UProjectileComponent::TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults,
 #endif
 }
 
-void UProjectileComponent::ProcessHitResults(FProjectileInstance& Projectile, const TArray<FHitResult>& HitResults)
+void UProjectileComponent::ProcessHitResults(OUT FProjectileInstance& Projectile, const TArray<FHitResult>& HitResults)
 {
 	for (const auto& HitResult : HitResults)
 	{
@@ -145,7 +146,7 @@ FHitResult UProjectileComponent::ShrinkHitResult(const FHitResult& HitResult) co
 	return HitTemp;
 }
 
-void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Projectile)
+void UProjectileComponent::UpdateProjectileOneFrame(OUT TArray<FHitResult>& HitResults,OUT FProjectileInstance& Projectile)
 {
 	float RealUpdateInterval = FMath::Min(ProjectileLifespan - Projectile.ElapsedTime, UpdateInterval);
 	RealUpdateInterval = FMath::Clamp(RealUpdateInterval, 0.0f, UpdateInterval);
@@ -169,21 +170,18 @@ void UProjectileComponent::UpdateProjectileOneFrame(FProjectileInstance& Project
 		Projectile.CurrentLocation.Z -= 0.5f * 100.0f * Gravity * (FMath::Square(Projectile.ElapsedTime) - FMath::Square(LastElapsedTime));
 		break;
 	default:
-		UE_LOG(LogProjectile, Error, TEXT("Projectile Component has an error Projectiletype!"));
+		check(false);
 		break;
 	}
 
-	TArray<FHitResult> HitResults;
 	TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
-
-	ProcessHitResults(Projectile, HitResults);
 }
 
 void UProjectileComponent::ServerCheckHitResult_Implementation(uint8 ProjectileID, FHitResult HitResult)
 {
 	for (auto& ProjectileHandle : ServerProjectileHandles)
 	{
-		if (ProjectileHandle.ProjectileID == ProjectileID)
+		if (ProjectileHandle.bPendingKill == false && ProjectileHandle.ProjectileID == ProjectileID)
 		{
 			// If hit valid target
 			if (const AAliveCharacter* TargetCharacter = Cast<AAliveCharacter>(HitResult.GetActor()))

@@ -73,6 +73,8 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 
 		AddCharacterAbilities();
 		AddCharacterEffects();
+
+		InitializeWithAbilitySystem();
 	}
 }
 
@@ -90,6 +92,8 @@ void APlayerCharacter::OnRep_PlayerState()
 		// Bind player input to the AbilitySystemComponent.
 		// Also called in SetupPlayerInputComponent because of a potential race condition.
 		BindAbilityInput();
+
+		InitializeWithAbilitySystem();
 	}
 }
 

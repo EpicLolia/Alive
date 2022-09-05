@@ -14,7 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FWeaponAmmoChangedDelegate, int32, 
 class AAliveCharacter;
 class UProjectileComponent;
 
-UCLASS()
+UCLASS(ClassGroup=(Alive)/*, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming)*/)
 class ALIVE_API AAliveWeapon : public AActor, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
@@ -56,6 +56,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "AliveWeapon", meta=(AllowPrivateAccess = true))
 	UProjectileComponent* ProjectileComponent;
+	
 public:
 	// Must set up FirePointSocket in Alive|Transform. 
 	UFUNCTION(BlueprintCallable, Category = "Alive")
@@ -105,7 +106,13 @@ protected:
 	// Only the client's fire action will be affected. Server do not care about it.
 	UPROPERTY(BlueprintReadWrite, Category = "Alive")
 	FGameplayTag FireMode;
-
+	
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Effect")
+	UParticleSystem* OpenFireEmitter;
+	
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Effect")
+	USoundBase* OpenFireSound;
+	
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
 	float MaxSpreadAngle;
 
