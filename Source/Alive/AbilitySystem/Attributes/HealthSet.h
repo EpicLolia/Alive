@@ -72,4 +72,6 @@ private:
 	// Incoming damage. This is mapped directly to -Health
 	UPROPERTY(BlueprintReadOnly, Category="Lyra|Health", Meta=(HideFromModifiers, AllowPrivateAccess=true))
 	FGameplayAttributeData Damage;
+
+	void SendDamageInfoToRelevantPlayers(float DamageNum, const FGameplayEffectModCallbackData& Data) const;
 };
