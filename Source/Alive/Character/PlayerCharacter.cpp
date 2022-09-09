@@ -9,12 +9,13 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Player/AlivePlayerController.h"
 #include "Player/AlivePlayerState.h"
 
 APlayerCharacter::APlayerCharacter(const class FObjectInitializer& ObjectInitializer)
-	//:Super(ObjectInitializer.
-	//	SetDefaultSubobjectClass<UAliveCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
-	:TouchRotateRate(50.0f)
+//:Super(ObjectInitializer.
+//	SetDefaultSubobjectClass<UAliveCharacterMovementComponent>(ACharacter::CharacterMovementComponentName))
+	: TouchRotateRate(50.0f)
 {
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -120,6 +121,31 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	BindAbilityInput();
 }
 
+void APlayerCharacter::OnDeath(AActor* DamageInstigator)
+{
+	Super::OnDeath(DamageInstigator);
+
+	if (HasAuthority())
+	{
+		AAlivePlayerState* PS = GetPlayerState<AAlivePlayerState>();
+		if (PS)
+		{
+			PS->AddDeathCount();
+			// TODO: Maybe the Owner is AI!!
+			PS->GetAlivePlayerController()->RespawnPlayerCharacterAfterCooldown();
+		}
+		APlayerCharacter* InstigatorCharacter = Cast<APlayerCharacter>(DamageInstigator);
+		if (InstigatorCharacter)
+		{
+			AAlivePlayerState* InstigatorPS = InstigatorCharacter->GetPlayerState<AAlivePlayerState>();
+			if (InstigatorPS)
+			{
+				InstigatorPS->AddKillCount();
+			}
+		}
+	}
+}
+
 void APlayerCharacter::MoveForward(float Value)
 {
 	if ((Controller != nullptr) && (Value != 0.0f))
@@ -152,7 +178,7 @@ void APlayerCharacter::MoveRight(float Value)
 
 void APlayerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	if(!bIsTouching)
+	if (!bIsTouching)
 	{
 		bIsTouching = true;
 		CurrentFingerIndex = FingerIndex;
@@ -162,15 +188,15 @@ void APlayerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Locat
 
 void APlayerCharacter::TouchMoved(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	if(FingerIndex == CurrentFingerIndex)
+	if (FingerIndex == CurrentFingerIndex)
 	{
 		FVector2D ViewportSize;
 		GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
 		if (Location.X > ViewportSize.X / 4) // 能在右3/4屏幕控制视角旋转
-			{
+		{
 			AddControllerYawInput((Location.X - PreviousTouchLocation.X) * 0.002 * TouchRotateRate);
 			AddControllerPitchInput((Location.Y - PreviousTouchLocation.Y) * 0.002 * TouchRotateRate);
-			}
+		}
 		PreviousTouchLocation = Location;
 	}
 }
@@ -211,6 +237,6 @@ void APlayerCharacter::BindAbilityInput()
 
 int32 APlayerCharacter::GetAbilityLevel(EAbilityInputID AbilityID) const
 {
-	// TODO: 与技能插槽(按键)绑定的技能等级系统
+	// TODO: Level of Ability. Bind with input slot. 
 	return 1;
 }

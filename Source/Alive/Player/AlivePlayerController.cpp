@@ -1,5 +1,8 @@
 ﻿#include "AlivePlayerController.h"
 
+#include "AlivePlayerState.h"
+#include "GameModes/GameMode_Game.h"
+
 AAlivePlayerController::AAlivePlayerController()
 {
 }
@@ -12,4 +15,33 @@ void AAlivePlayerController::ClientRepDamageResultAsSource_Implementation(FDamag
 void AAlivePlayerController::ClientRepDamageResultAsTarget_Implementation(FDamageResult DamageResult)
 {
 	K2_OnSufferDamage(DamageResult);
+}
+
+void AAlivePlayerController::SpawnPlayerCharacterImmediately()
+{
+	check(HasAuthority());
+
+	if(AAliveCharacter* OldCharacter = Cast<AAliveCharacter>(GetPawn()))
+	{
+		OldCharacter->FinishDeathImmediately();
+	}
+	
+	if (AAlivePlayerState* PS = GetPlayerState<AAlivePlayerState>())
+	{
+		FTransform SpawnTransform = Cast<AGameMode_Game>(GetWorld()->GetAuthGameMode())->GetRandomSpawnTransform();
+		APlayerCharacter* NewCharacter = GetWorld()->SpawnActor<APlayerCharacter>(PS->GetCharacterType(),SpawnTransform);
+		check(NewCharacter);
+		Possess(NewCharacter);
+	}
+}
+
+void AAlivePlayerController::RespawnPlayerCharacterAfterCooldown()
+{
+	if (HasAuthority())
+	{
+		AGameMode_Game* GM = Cast<AGameMode_Game>(GetWorld()->GetAuthGameMode());
+		GetWorld()->GetTimerManager().SetTimer(
+			RespawnCharacterTimerHandle, this, &AAlivePlayerController::SpawnPlayerCharacterImmediately,
+			GM->GetPlayerRespawnCooldown());
+	}
 }

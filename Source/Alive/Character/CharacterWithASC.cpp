@@ -1,32 +1,41 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "CharacterWithASC.h"
 
+#include "AbilitySystem/AliveAbilitySystemComponent.h"
+#include "AbilitySystem/Attributes/AmmoSet.h"
+#include "AbilitySystem/Attributes/CombatSet.h"
+#include "AbilitySystem/Attributes/HealthSet.h"
 
-// Sets default values
 ACharacterWithASC::ACharacterWithASC()
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	AbilitySystemComponent = CreateDefaultSubobject<UAliveAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+
+	// Creating AttributeSet in the constructor will be automatically registered to ASC.
+	CreateDefaultSubobject<UHealthSet>(TEXT("HealthSet"));
+	CreateDefaultSubobject<UCombatSet>(TEXT("CombatSet"));
+	CreateDefaultSubobject<UAmmoSet>(TEXT("AmmoSet"));
+
+	// The character will play a role as the monster or something like that.
+	// Do not need needs to be updated at a high frequency.
+	NetUpdateFrequency = 15.0f;
 }
 
-// Called when the game starts or when spawned
 void ACharacterWithASC::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	// Has generated ASC in constructor.
+	InitializeWithAbilitySystem();
 }
 
-// Called every frame
 void ACharacterWithASC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-// Called to bind functionality to input
-void ACharacterWithASC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-}
 

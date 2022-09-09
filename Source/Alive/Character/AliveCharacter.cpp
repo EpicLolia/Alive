@@ -65,7 +65,7 @@ void AAliveCharacter::InitializeWithAbilitySystem()
 	HealthSet = AbilitySystemComponent->GetSet<UHealthSet>();
 	check(HealthSet);
 	// Register to listen for attribute changes.
-	HealthSet->OnOutOfHealth.AddUObject(this, &ThisClass::HandleOutOfHealth);
+	HealthSet->OnOutOfHealth.AddUObject(this, &ThisClass::ProcessOutOfHealth);
 }
 
 void AAliveCharacter::UninitializeFromAbilitySystem()
@@ -234,10 +234,15 @@ void AAliveCharacter::StartDeath()
 void AAliveCharacter::FinishDeath()
 {
 	DeathState = EDeathState::DeathFinished;
-
+	
 	K2_OnDeathFinished();
 
-	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::UninitAndDestroy);
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::UninitializeAndDestroy);
+}
+
+void AAliveCharacter::FinishDeathImmediately()
+{
+	UninitializeAndDestroy();
 }
 
 void AAliveCharacter::OnRep_DeathState(EDeathState OldDeathState)
@@ -277,7 +282,7 @@ void AAliveCharacter::DisableMovementAndCollision()
 	AliveMovementComp->DisableMovement();
 }
 
-void AAliveCharacter::UninitAndDestroy()
+void AAliveCharacter::UninitializeAndDestroy()
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
@@ -297,7 +302,7 @@ void AAliveCharacter::UninitAndDestroy()
 	SetActorHiddenInGame(true);
 }
 
-void AAliveCharacter::HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec,
+void AAliveCharacter::ProcessOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec,
                                         float DamageMagnitude)
 {
 #if WITH_SERVER_CODE
@@ -318,4 +323,5 @@ void AAliveCharacter::HandleOutOfHealth(AActor* DamageInstigator, AActor* Damage
 		AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
 	}
 #endif
+	OnDeath(DamageInstigator);
 }

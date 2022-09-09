@@ -25,6 +25,8 @@ public:
 	void ClientRepDamageResultAsTarget(FDamageResult DamageResult);
 	void ClientRepDamageResultAsTarget_Implementation(FDamageResult DamageResult);
 
+	void SpawnPlayerCharacterImmediately();
+	void RespawnPlayerCharacterAfterCooldown();
 protected:
 	/** Called when the damage applied on the server, and you are the sufferer. Used to display the damage number. */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, DisplayName = "OnSufferDamage")
@@ -32,4 +34,7 @@ protected:
 	/** Called when the damage applied on the server, and you are the causer. Used to display the damage number. */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCosmetic, DisplayName = "OnCauseDamage")
 	void K2_OnCauseDamage(const FDamageResult& DamageResult);
+
+private:
+	FTimerHandle RespawnCharacterTimerHandle;
 };

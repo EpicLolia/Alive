@@ -35,6 +35,9 @@ protected:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
+	virtual void OnDeath(AActor* DamageInstigator) override;
+
+	
 protected:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Alive|Input")
 	float TouchRotateRate;

@@ -38,11 +38,9 @@ public:
 	AAliveCharacter();
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	
+
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	void UninitializeAbilitySystem();
 	
 	// Should be called by derived classes.
 	void InitializeWithAbilitySystem();
@@ -116,21 +114,26 @@ public:
 	void StartDeath();
 	// Ends the death sequence for the owner.
 	void FinishDeath();
-	
+	void FinishDeathImmediately();
 protected:
 	UFUNCTION(BlueprintImplementableEvent, DisplayName = "OnDeathStarted")
 	void K2_OnDeathStarted();
 	UFUNCTION(BlueprintImplementableEvent, DisplayName = "OnDeathFinished")
 	void K2_OnDeathFinished();
-
+	
+	// Process KDA and respawn character. 
+	virtual void OnDeath(AActor* DamageInstigator){}
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_DeathState)
 	EDeathState DeathState;
 	UFUNCTION()
 	void OnRep_DeathState(EDeathState OldDeathState);
 
+	// Called in StartDeath
 	void DisableMovementAndCollision();
-	void UninitAndDestroy();
+	// Called in FinishDeath
+	void UninitializeAndDestroy();
+	void UninitializeAbilitySystem();
 	
-	void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec, float DamageMagnitude);
+	void ProcessOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec, float DamageMagnitude);
 };

@@ -14,33 +14,26 @@ class ALIVE_API AGameMode_Game : public AAliveGameMode
 public:
 	AGameMode_Game();
 
+	FTransform GetRandomSpawnTransform(FName Tag = FName("None")) const;
+	FORCEINLINE float GetPlayerRespawnCooldown() const { return PlayerRespawnCooldown; }
+protected:
+	virtual void BeginPlay() override;
+
 protected:
 	/** delay between first player login and starting match */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	int32 WarmupTime;
+	float WarmupTime;
 
 	/** match duration */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	int32 RoundTime;
+	float RoundTime;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	int32 TimeBetweenMatches;
-
-	/** score for kill */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	int32 KillScore;
-
-	/** score for death */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	int32 DeathScore;
-
-	/** scale for self instigated damage */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	float DamageSelfScale;
+	float TimeBetweenMatches;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
 	int32 MaxBots;
 
-
-	virtual void BeginPlay() override;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
+	float PlayerRespawnCooldown;
 };
