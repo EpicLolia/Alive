@@ -26,6 +26,12 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
+protected:
+	UPROPERTY(BlueprintReadOnly, Category = "Alive")
+	int32 KillCount = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Alive")
+	int32 DeathCount = 0;
+	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Alive|PlayerState")
 	UAliveAbilitySystemComponent* AbilitySystemComponent;

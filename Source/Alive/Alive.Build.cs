@@ -41,6 +41,8 @@ public class Alive : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"OnlineSubsystem", 
+				"OnlineSubsystemUtils"
 			}
 		);
 
