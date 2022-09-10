@@ -7,7 +7,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "AliveGameState.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeChangedDelegate, float, CurrentTime);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeChangedDelegate, int32, CurrentTime);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMatchStateChangedDelegate, EMatchState, CurrentMatchState);
 
 /**
