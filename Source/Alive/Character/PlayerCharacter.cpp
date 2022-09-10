@@ -64,7 +64,7 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
+	
 	AAlivePlayerState* PS = NewController->GetPlayerState<AAlivePlayerState>();
 	if (PS)
 	{
@@ -77,15 +77,26 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 
 		InitializeWithAbilitySystem();
 	}
+	
+	if(NewController->IsLocalPlayerController())
+	{
+		OnPossessedLocally(Cast<APlayerController>(NewController));
+	}
 }
 
 void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-
+	
 	const AAlivePlayerState* PS = Cast<AAlivePlayerState>(GetPlayerState());
 	if (PS)
 	{
+		AAlivePlayerController* PC = PS->GetAlivePlayerController();
+		if(PC && PC->IsLocalPlayerController())
+		{
+			OnPossessedLocally(PC);
+		}
+		
 		AbilitySystemComponent = PS->GetAliveAbilitySystemComponent();
 
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);

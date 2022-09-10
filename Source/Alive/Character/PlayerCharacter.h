@@ -42,6 +42,10 @@ protected:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly, Category = "Alive|Input")
 	float TouchRotateRate;
 
+	// Used to add Widget to local screen
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnPossessedLocally(APlayerController* LocalController);
+	
 private:
 	void MoveForward(float Val);
 	void MoveRight(float Val);
@@ -63,7 +67,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 
-	// 需要在添加技能时绑定按键,TODO:并接入技能等级系统
+	// Should bind input while giving ability, TODO: Ability Level
 	virtual void AddCharacterAbilities() override final;
 
 	// Called from both SetupPlayerInputComponent and OnRep_PlayerState because of a potential race condition where the PlayerController might

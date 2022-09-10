@@ -21,15 +21,17 @@ void AAlivePlayerController::SpawnPlayerCharacterImmediately()
 {
 	check(HasAuthority());
 
-	if(AAliveCharacter* OldCharacter = Cast<AAliveCharacter>(GetPawn()))
+	if (AAliveCharacter* OldCharacter = Cast<AAliveCharacter>(GetPawn()))
 	{
 		OldCharacter->FinishDeathImmediately();
 	}
-	
+
 	if (AAlivePlayerState* PS = GetPlayerState<AAlivePlayerState>())
 	{
 		FTransform SpawnTransform = Cast<AGameMode_Game>(GetWorld()->GetAuthGameMode())->GetRandomSpawnTransform();
-		APlayerCharacter* NewCharacter = GetWorld()->SpawnActor<APlayerCharacter>(PS->GetCharacterType(),SpawnTransform);
+		FActorSpawnParameters Param;
+		Param.Owner = this;
+		APlayerCharacter* NewCharacter = GetWorld()->SpawnActor<APlayerCharacter>(PS->GetCharacterType(), SpawnTransform, Param);
 		check(NewCharacter);
 		Possess(NewCharacter);
 	}
