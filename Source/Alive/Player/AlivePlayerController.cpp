@@ -42,6 +42,6 @@ void AAlivePlayerController::RespawnPlayerCharacterAfterCooldown()
 		AGameMode_Game* GM = Cast<AGameMode_Game>(GetWorld()->GetAuthGameMode());
 		GetWorld()->GetTimerManager().SetTimer(
 			RespawnCharacterTimerHandle, this, &AAlivePlayerController::SpawnPlayerCharacterImmediately,
-			GM->GetPlayerRespawnCooldown());
+			static_cast<float>(GM->GetPlayerRespawnCooldown()));
 	}
 }

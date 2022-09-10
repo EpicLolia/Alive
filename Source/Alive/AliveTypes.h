@@ -4,6 +4,15 @@
 
 #include "AliveTypes.generated.h"
 
+UENUM(BlueprintType)
+enum class EMatchState : uint8
+{
+	Warmup,
+	Playing,
+	Finish,
+	Evaluate
+};
+
 /**
  * FDamageResult
  * 
@@ -17,7 +26,7 @@ struct ALIVE_API FDamageResult
 	FDamageResult(): Damage(0.0f), bBlock(false), bCriticalHit(false), bWeakness(false)
 	{
 	}
-	
+
 	UPROPERTY(BlueprintReadOnly)
 	FVector_NetQuantize OppositeLocation;
 	UPROPERTY(BlueprintReadOnly)
@@ -41,5 +50,3 @@ struct TStructOpsTypeTraits<FDamageResult> : public TStructOpsTypeTraitsBase2<FD
 		WithNetSerializer = true,
 	};
 };
-
-

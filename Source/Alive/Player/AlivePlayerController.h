@@ -25,6 +25,7 @@ public:
 	void ClientRepDamageResultAsTarget(FDamageResult DamageResult);
 	void ClientRepDamageResultAsTarget_Implementation(FDamageResult DamageResult);
 
+	UFUNCTION(BlueprintCallable)
 	void SpawnPlayerCharacterImmediately();
 	void RespawnPlayerCharacterAfterCooldown();
 protected:

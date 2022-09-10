@@ -15,25 +15,33 @@ public:
 	AGameMode_Game();
 
 	FTransform GetRandomSpawnTransform(FName Tag = FName("None")) const;
-	FORCEINLINE float GetPlayerRespawnCooldown() const { return PlayerRespawnCooldown; }
+	FORCEINLINE int32 GetPlayerRespawnCooldown() const { return PlayerRespawnCooldown; }
+	
 protected:
 	virtual void BeginPlay() override;
 
 protected:
 	/** delay between first player login and starting match */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	float WarmupTime;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSettings")
+	int32 WarmupTime;
 
 	/** match duration */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	float RoundTime;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSettings")
+	int32 RoundTime;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	float TimeBetweenMatches;
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSettings")
+	int32 TimeBetweenMatches;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSettings")
+	int32 TimeWaitEvaluate;
+	
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSettings|Player")
+	int32 PlayerRespawnCooldown;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSettings")
 	int32 MaxBots;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|GameSetting")
-	float PlayerRespawnCooldown;
+private:
+	void DefaultTimerUpdate();
+	FTimerHandle DefaultGameTimerHandle;
 };
