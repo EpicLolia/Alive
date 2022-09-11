@@ -40,4 +40,20 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Ability")
 	void ApplyAdditionalCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo& ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const;
 	virtual void ApplyAdditionalCost_Implementation(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo& ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const {};
+
+
+	virtual const FGameplayTagContainer* GetCooldownTags() const override;
+	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
+
+	// The InstancingPolicy of this ability should be InstancedPerActor.
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
+	FScalableFloat CooldownDuration;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Cooldown")
+	FGameplayTagContainer CooldownTags;
+
+	// Temp container that we will return the pointer to in GetCooldownTags().
+	// This will be a union of our CooldownTags and the Cooldown GE's cooldown tags.
+	UPROPERTY()
+	FGameplayTagContainer TempCooldownTags;
 };

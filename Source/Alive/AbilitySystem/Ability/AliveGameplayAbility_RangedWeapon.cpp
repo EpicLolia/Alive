@@ -180,7 +180,7 @@ void UAliveGameplayAbility_RangedWeapon::FireProjectile(const FGameplayAbilityTa
 	UProjectileComponent* ProjectileComp = GetSourceWeapon()->GetProjectileComponent();
 	check(ProjectileComp);
 
-	if (CommitAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
+	if (CommitAbilityCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
 	{
 		GetSourceWeapon()->AddSpread();
 		
