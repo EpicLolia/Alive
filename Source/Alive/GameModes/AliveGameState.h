@@ -41,7 +41,7 @@ protected:
 	UFUNCTION()
 	void OnRep_RemainingTime();
 
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_MatchState)
+	UPROPERTY(BlueprintReadOnly, Transient, ReplicatedUsing = OnRep_MatchState)
 	EMatchState MatchState;
 	UFUNCTION()
 	void OnRep_MatchState();
