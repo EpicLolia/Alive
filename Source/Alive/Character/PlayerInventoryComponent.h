@@ -9,6 +9,7 @@
 class AAliveWeapon;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponChangedDelegate, AAliveWeapon*, Weapon);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWeaponInventoryChangedDelegate);
 
 UCLASS(ClassGroup=(Alive), hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming))
@@ -18,7 +19,7 @@ class ALIVE_API UPlayerInventoryComponent : public UActorComponent
 
 public:
 	UPlayerInventoryComponent();
-	
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -27,10 +28,11 @@ protected:
 public:
 	FORCEINLINE AAliveWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
 
+
 	void AddWeapon(AAliveWeapon* Weapon);
 	UFUNCTION(BlueprintCallable)
 	void ChangeWeaponAndRequestServer(AAliveWeapon* Weapon);
-
+	const TArray<AAliveWeapon*>& GetWeaponInventory() const { return WeaponInventory; }
 	/*
 	void DiscardWeapon(AAliveWeapon* Weapon);
 	// Called when character dies.
@@ -39,7 +41,7 @@ public:
 
 	// Check before pick up
 	bool HasSameWeapon(const AAliveWeapon* Weapon) const;
-	bool IsTheOwner(const AAliveWeapon* Weapon)const;
+	bool IsTheOwner(const AAliveWeapon* Weapon) const;
 
 protected:
 	// Can be used to Change AnimLayer or UI 
@@ -56,7 +58,7 @@ private:
 	// Will be Called on the owner only. Tells you that your inventory has some change.
 	UFUNCTION()
 	void OnRep_WeaponInventory(const TArray<AAliveWeapon*>& PreviousWeaponInventory);
-	
+
 	// Replicated Simulated Only
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon)
 	AAliveWeapon* CurrentWeapon;
@@ -68,4 +70,3 @@ private:
 	void ServerChangeWeapon(AAliveWeapon* Weapon);
 	void ServerChangeWeapon_Implementation(AAliveWeapon* Weapon);
 };
-

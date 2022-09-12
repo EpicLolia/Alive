@@ -24,6 +24,7 @@ protected:
 
 	virtual bool CanPickUp(const AAliveCharacter* Character) const override;
 	virtual void GivePickupTo(AAliveCharacter* Character) override;
+	virtual void OnPickUpEvent() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Alive|Pickup")
 	TSubclassOf<AAliveWeapon> WeaponToSpawn;
@@ -32,15 +33,13 @@ protected:
 	AAliveWeapon* Weapon;
 
 private:
-	void OnPickUpEvent();
-	
 	void UpdateWeaponTransformAndVelocity();
 
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentTransformWithVelocity)
 	FTransformWithVelocity CurrentTransformWithVelocity;
 	UFUNCTION()
 	void OnRep_CurrentTransformWithVelocity();
-	
+
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastStartSimulatePhysics();
 	void MulticastStartSimulatePhysics_Implementation();

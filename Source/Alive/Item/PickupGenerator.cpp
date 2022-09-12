@@ -64,17 +64,11 @@ void APickupGenerator::BeginPlay()
 	Super::BeginPlay();
 
 	GeneratePickup();
-	
-	if(!bLoop)
-	{
-		SetLifeSpan(0.1f);
-	}
 }
 
 void APickupGenerator::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	NextPickupGenerateTimerHandle.Invalidate();
-	OnPickUpHandle.Reset();
 	
 	Super::EndPlay(EndPlayReason);
 }
@@ -83,14 +77,21 @@ void APickupGenerator::GeneratePickup()
 {
 	check(GetWorld()->GetFirstPlayerController()->HasAuthority());
 
+	
 	APickup* NewPickup = GetWorld()->SpawnActor<APickup>(PickupList[FMath::RandRange(0,PickupList.Num()-1)],GetTransform());
-	OnPickUpHandle = NewPickup->OnPickUp.AddUObject(this, &APickupGenerator::OnPickUpEvent);
 	bHasPickup = true;
+
+	if(bLoop)
+	{
+	NewPickup->OnPickUpOrTimeOut.BindUObject(this, &APickupGenerator::OnPickUpOrTimeOutEvent);
+	}else
+	{
+		SetLifeSpan(0.1f);
+	}
 }
 
-void APickupGenerator::OnPickUpEvent()
+void APickupGenerator::OnPickUpOrTimeOutEvent()
 {
 	GetWorld()->GetTimerManager().SetTimer(NextPickupGenerateTimerHandle,this, &APickupGenerator::GeneratePickup,GenerateCooldown);
-	OnPickUpHandle.Reset();
 	bHasPickup = false;
 }

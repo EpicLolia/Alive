@@ -18,9 +18,7 @@ APickupWeapon::APickupWeapon()
 void APickupWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-
-	OnPickUp.AddUObject(this, &APickupWeapon::OnPickUpEvent);
-
+	
 	if (HasAuthority())
 	{
 		Weapon = GetWorld()->SpawnActor<AAliveWeapon>(WeaponToSpawn, GetTransform());

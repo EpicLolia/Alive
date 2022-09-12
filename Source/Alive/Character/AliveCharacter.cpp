@@ -233,5 +233,5 @@ void AAliveCharacter::ProcessOutOfHealth(AActor* DamageInstigator, AActor* Damag
 		AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
 	}
 #endif
-	OnDeath(DamageInstigator);
+	OnDeath(DamageCauser);
 }

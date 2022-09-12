@@ -23,6 +23,8 @@ class ALIVE_API APickupGenerator : public ANavigationObjectBase
 public:
 	APickupGenerator();
 
+	void DestroyAfterNextGenerate() { bLoop = false; }
+	bool HasPickupNow() const { return bHasPickup; }
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -34,15 +36,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Alive|Pickup")
 	bool bLoop;
 
+	// Count since generator lost it's pickup (be picked up or time out).
 	UPROPERTY(EditAnywhere, Category="Alive|Pickup")
 	float GenerateCooldown;
-
-	UPROPERTY(BlueprintReadOnly, Category="Alive|Pickup")
-	bool bHasPickup;
+	
 private:
 	FTimerHandle NextPickupGenerateTimerHandle;
-	FDelegateHandle OnPickUpHandle;
 
+	bool bHasPickup;
 	void GeneratePickup();
-	void OnPickUpEvent();
+	void OnPickUpOrTimeOutEvent();
 };
