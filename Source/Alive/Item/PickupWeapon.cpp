@@ -4,6 +4,8 @@
 #include "PickupWeapon.h"
 #include "AliveLogChannels.h"
 #include "Character/AliveCharacter.h"
+#include "Character/PlayerCharacter.h"
+#include "Character/PlayerInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/AliveWeapon.h"
 
@@ -18,7 +20,7 @@ void APickupWeapon::BeginPlay()
 	Super::BeginPlay();
 
 	OnPickUp.AddUObject(this, &APickupWeapon::OnPickUpEvent);
-	
+
 	if (HasAuthority())
 	{
 		Weapon = GetWorld()->SpawnActor<AAliveWeapon>(WeaponToSpawn, GetTransform());
@@ -54,8 +56,8 @@ bool APickupWeapon::CanPickUp(const AAliveCharacter* Character) const
 {
 	// TODO: Limit on the number of weapons
 	return Super::CanPickUp(Character)
-		&& GetGameTimeSinceCreation() > 0.5f // Should wait weapon pointer to be replicated.
-		;//&& !Character->GetCurrentWeapon()->IsA(Weapon->GetClass());
+		&& Character->CanAddWeapon(Weapon)
+		&& GetGameTimeSinceCreation() > 0.5f; // Should wait weapon pointer to be replicated.
 }
 
 void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
@@ -65,7 +67,7 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 	MulticastStopSimulatePhysics(CurrentTransformWithVelocity);
 
 	this->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	Character->AddWeaponToInventory(Weapon);
+	Character->AddWeapon(Weapon);
 
 	UpdateTransformTimerHandle.Invalidate();
 	//Weapon = nullptr; // Should I do this?

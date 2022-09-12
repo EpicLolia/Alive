@@ -29,8 +29,6 @@ void AAliveCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AAliveCharacter, CurrentWeapon, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(AAliveCharacter, WeaponInventory, COND_None);
 	DOREPLIFETIME_CONDITION(AAliveCharacter, DeathState, COND_None);
 }
 
@@ -77,56 +75,6 @@ void AAliveCharacter::UninitializeFromAbilitySystem()
 
 	HealthSet = nullptr;
 	AbilitySystemComponent = nullptr;
-}
-
-void AAliveCharacter::AddWeaponToInventory(AAliveWeapon* Weapon)
-{
-	check(HasAuthority());
-
-	Weapon->SetOwningCharacter(this);
-	WeaponInventory.Add(Weapon);
-	OnRep_WeaponInventory();
-}
-
-void AAliveCharacter::ChangeWeaponAndRequestServer(AAliveWeapon* Weapon)
-{
-	const AAliveWeapon* PreviousWeapon = CurrentWeapon;
-	CurrentWeapon = Weapon;
-	OnRep_CurrentWeapon(PreviousWeapon);
-
-	// Cancel the Abilities of previous weapon. Will not remove the projectile that is already fired. 
-	if (PreviousWeapon)
-	{
-		for (const auto& Ability : PreviousWeapon->GetWeaponAbilitySpecHandles())
-		{
-			AbilitySystemComponent->CancelAbilityHandle(Ability);
-		}
-	}
-
-	if (!HasAuthority())
-	{
-		ServerChangeWeapon(Weapon);
-	}
-}
-
-void AAliveCharacter::ServerChangeWeapon_Implementation(AAliveWeapon* Weapon)
-{
-	const AAliveWeapon* PreviousWeapon = CurrentWeapon;
-	CurrentWeapon = Weapon;
-	OnRep_CurrentWeapon(PreviousWeapon);
-}
-
-void AAliveCharacter::OnRep_CurrentWeapon(const AAliveWeapon* PreviousWeapon)
-{
-	if (PreviousWeapon)
-	{
-		PreviousWeapon->SetWeaponVisibility(false);
-	}
-	if (CurrentWeapon)
-	{
-		CurrentWeapon->SetWeaponVisibility(true);
-	}
-	OnWeaponChanged.Broadcast(CurrentWeapon);
 }
 
 void AAliveCharacter::AddCharacterAbilities()
@@ -184,44 +132,6 @@ void AAliveCharacter::AddCharacterEffects()
 		}
 	}
 }
-
-void AAliveCharacter::OnRep_WeaponInventory()
-{
-	if (WeaponInventory.Last())
-	{
-		// If Server pick up the weapon, the replicate order of CurrentWeapon and WeaponInventory
-		// may be out of order. So we should check if the CurrentWeapon is the one the player picks up. 
-		if (CurrentWeapon != WeaponInventory.Last())
-		{
-			WeaponInventory.Last()->SetWeaponVisibility(false);
-		}
-		if (IsLocallyControlled())
-		{
-			OnWeaponAddedToMyInventory.Broadcast(WeaponInventory.Last());
-			// If this is the first weapon you get, you can equip automatically. 
-			if (WeaponInventory.Num() == 1)
-			{
-				ChangeWeaponAndRequestServer(WeaponInventory.Last());
-			}
-		}
-	}
-}
-
-void AAliveCharacter::AdjustWeaponsVisibility()
-{
-	for (const auto weapon : WeaponInventory)
-	{
-		if (weapon == CurrentWeapon)
-		{
-			weapon->SetWeaponVisibility(true);
-		}
-		else
-		{
-			weapon->SetWeaponVisibility(false);
-		}
-	}
-}
-
 void AAliveCharacter::StartDeath()
 {
 	DeathState = EDeathState::DeathStarted;

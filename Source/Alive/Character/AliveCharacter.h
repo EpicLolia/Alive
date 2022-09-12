@@ -38,9 +38,12 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
+	virtual bool CanAddWeapon(AAliveWeapon* Weapon) const { return false; }
+	virtual void AddWeapon(AAliveWeapon* Weapon) { return; }
+
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
 	// Should be called by derived classes.
 	void InitializeWithAbilitySystem();
 	// Should be called when the actor is uninitialized from ability system.
@@ -49,7 +52,7 @@ protected:
 private:
 	UPROPERTY()
 	const class UHealthSet* HealthSet;
-	
+
 protected:
 	// Only add or remove ability on server, this function will be called in derived class
 	virtual void AddCharacterAbilities();
@@ -67,45 +70,11 @@ protected:
 	TArray<TSubclassOf<class UGameplayEffect>> CharacterEffects;
 
 public:
-	AAliveWeapon* GetCurrentWeapon() const { return CurrentWeapon; }
-
-	void AddWeaponToInventory(AAliveWeapon* Weapon);
-
 	FName GetWeaponSocket() const { return WeaponSocket; }
-
-	// Can be used to Change AnimLayer or UI 
-	UPROPERTY(BlueprintAssignable, Category = "Alive|Character")
-	FWeaponDelegate OnWeaponChanged;
-
-	// A locally delegate. Only called on actor's owner. Used to show some UI Tips.
-	UPROPERTY(BlueprintAssignable, Category = "Alive|Character")
-	FWeaponDelegate OnWeaponAddedToMyInventory;
 
 protected:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Weapon")
 	FName WeaponSocket;
-
-private:
-	// Replicated Simulated Only
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentWeapon)
-	AAliveWeapon* CurrentWeapon;
-	// This will eventually be executed on all clients. Including server.
-	UFUNCTION()
-	void OnRep_CurrentWeapon(const AAliveWeapon* PreviousWeapon);
-
-	void ChangeWeaponAndRequestServer(AAliveWeapon* Weapon);
-	UFUNCTION(Server, Reliable)
-	void ServerChangeWeapon(AAliveWeapon* Weapon);
-	void ServerChangeWeapon_Implementation(AAliveWeapon* Weapon);
-
-	UPROPERTY(ReplicatedUsing = OnRep_WeaponInventory)
-	TArray<AAliveWeapon*> WeaponInventory;
-	// This will eventually be executed on all clients. Including server.
-	UFUNCTION()
-	void OnRep_WeaponInventory();
-
-	// Used for reconnection after disconnection
-	void AdjustWeaponsVisibility();
 
 public:
 	EDeathState GetCurrentDeathState() const { return DeathState; }
@@ -119,9 +88,12 @@ protected:
 	void K2_OnDeathStarted();
 	UFUNCTION(BlueprintImplementableEvent, DisplayName = "OnDeathFinished")
 	void K2_OnDeathFinished();
-	
+
 	// Process KDA and respawn character. 
-	virtual void OnDeath(AActor* DamageInstigator){}
+	virtual void OnDeath(AActor* DamageInstigator)
+	{
+	}
+
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_DeathState)
 	EDeathState DeathState;
@@ -133,6 +105,7 @@ private:
 	// Called in FinishDeath
 	void UninitializeAndDestroy();
 	void UninitializeAbilitySystem();
-	
-	void ProcessOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec, float DamageMagnitude);
+
+	void ProcessOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec,
+	                        float DamageMagnitude);
 };

@@ -3,6 +3,7 @@
 #include "PlayerCharacter.h"
 
 #include "AliveCharacterMovementComponent.h"
+#include "PlayerInventoryComponent.h"
 #include "AbilitySystem/AliveAbilitySystemComponent.h"
 #include "AbilitySystem/Ability/AliveGameplayAbility.h"
 #include "Camera/CameraComponent.h"
@@ -48,7 +49,21 @@ APlayerCharacter::APlayerCharacter(const class FObjectInitializer& ObjectInitial
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 	FirstPersonCameraComponent->bAutoActivate = false;
 
+	// Create a PlayerInventoryComponent
+	InventoryComponent = CreateDefaultSubobject<UPlayerInventoryComponent>(TEXT("InventoryComponent"));
+	InventoryComponent->bAutoActivate = true;
+	
 	bHasBoundAbilityInput = false;
+}
+
+bool APlayerCharacter::CanAddWeapon(AAliveWeapon* Weapon) const
+{
+	return !InventoryComponent->HasSameWeapon(Weapon);
+}
+
+void APlayerCharacter::AddWeapon(AAliveWeapon* Weapon)
+{
+	InventoryComponent->AddWeapon(Weapon);
 }
 
 UAliveCharacterMovementComponent* APlayerCharacter::GetAliveCharacterMovementComponent()
