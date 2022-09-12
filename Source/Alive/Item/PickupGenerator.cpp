@@ -91,5 +91,6 @@ void APickupGenerator::GeneratePickup()
 void APickupGenerator::OnPickUpEvent()
 {
 	GetWorld()->GetTimerManager().SetTimer(NextPickupGenerateTimerHandle,this, &APickupGenerator::GeneratePickup,GenerateCooldown);
+	OnPickUpHandle.Reset();
 	bHasPickup = false;
 }

@@ -28,7 +28,6 @@ enum class EDeathState : uint8
 	DeathFinished
 };
 
-
 UCLASS(config=Game, Abstract)
 class AAliveCharacter : public ACharacter, public IAbilitySystemInterface
 {
@@ -60,7 +59,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Alive|AbilitySystem")
 	UAliveAbilitySystemComponent* AbilitySystemComponent;
 
-	// Default abilities for this Character. These will be removed on Character death and regiven if Character respawns. 
+	// Default abilities for this Character. These will be removed on Character death and given again when the character is respawned. 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Alive|AbilitySystem")
 	TArray<TSubclassOf<class UAliveGameplayAbility>> CharacterAbilities;
 

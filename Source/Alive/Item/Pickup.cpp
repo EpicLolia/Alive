@@ -37,13 +37,12 @@ void APickup::TryToPickItUp(AAliveCharacter* Character)
 		return;
 	}
 
-	bHasBeenTriggered = true;
-	
-	GivePickupTo(Character);
-
+	// Should set weapon visibility before give it to player.
 	MulticastPickUpEvent();
-	OnPickUp.Broadcast();
+
+	GivePickupTo(Character);
 	
+	bHasBeenTriggered = true;
 	SetLifeSpan(0.1f);
 }
 
@@ -74,7 +73,7 @@ void APickup::GivePickupTo(AAliveCharacter* Character)
 
 void APickup::MulticastPickUpEvent_Implementation()
 {
-	OnPickUpEvent();
+	OnPickUp.Broadcast();
 }
 
 bool APickup::CanPickUp(const AAliveCharacter* Character) const

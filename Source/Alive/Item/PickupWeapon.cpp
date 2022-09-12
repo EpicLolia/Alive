@@ -17,6 +17,8 @@ void APickupWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
+	OnPickUp.AddUObject(this, &APickupWeapon::OnPickUpEvent);
+	
 	if (HasAuthority())
 	{
 		Weapon = GetWorld()->SpawnActor<AAliveWeapon>(WeaponToSpawn, GetTransform());
@@ -25,7 +27,7 @@ void APickupWeapon::BeginPlay()
 		this->AttachToActor(Weapon, FAttachmentTransformRules::KeepRelativeTransform);
 		this->SetActorRelativeTransform(FTransform());
 
-		// Wait Weapon pointer to replicate.
+		// Wait Weapon pointer to be replicated.
 		GetWorld()->GetTimerManager().SetTimerForNextTick(this, &APickupWeapon::MulticastStartSimulatePhysics);
 
 		GetWorld()->GetTimerManager().SetTimer(UpdateTransformTimerHandle, this, &APickupWeapon::UpdateWeaponTransformAndVelocity,
@@ -51,7 +53,9 @@ void APickupWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTr
 bool APickupWeapon::CanPickUp(const AAliveCharacter* Character) const
 {
 	// TODO: Limit on the number of weapons
-	return Super::CanPickUp(Character) && Weapon; // && !Character->GetCurrentWeapon()->IsA(Weapon->GetClass());
+	return Super::CanPickUp(Character)
+		&& GetGameTimeSinceCreation() > 0.5f // Should wait weapon pointer to be replicated.
+		;//&& !Character->GetCurrentWeapon()->IsA(Weapon->GetClass());
 }
 
 void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
@@ -67,12 +71,19 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 	//Weapon = nullptr; // Should I do this?
 }
 
+void APickupWeapon::OnPickUpEvent()
+{
+	Weapon->SetWeaponVisibility(false);
+}
+
 void APickupWeapon::UpdateWeaponTransformAndVelocity()
 {
 	check(HasAuthority());
 
 	CurrentTransformWithVelocity = FTransformWithVelocity(Weapon->GetActorTransform(), Weapon->GetVelocity());
-	if (Weapon->GetVelocity().Size() < 10.0f) // When should we stop simulate. Can be non-stop if you want.
+
+	// When should we stop simulate. Can be non-stop if you want.
+	if (Weapon->GetVelocity().Size() < 10.0f && GetGameTimeSinceCreation() > 1.0f)
 	{
 		MulticastStopSimulatePhysics(CurrentTransformWithVelocity);
 		UpdateTransformTimerHandle.Invalidate();

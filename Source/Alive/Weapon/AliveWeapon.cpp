@@ -40,6 +40,11 @@ AAliveWeapon::AAliveWeapon()
 	WeaponIsFiringTag = FGameplayTag::RequestGameplayTag("Weapon.IsFiring");
 }
 
+void AAliveWeapon::AdjustAllWeaponsVisibility()
+{
+	//TODO
+}
+
 void AAliveWeapon::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

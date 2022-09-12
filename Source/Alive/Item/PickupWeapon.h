@@ -21,24 +21,25 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
-	
+
 	virtual bool CanPickUp(const AAliveCharacter* Character) const override;
 	virtual void GivePickupTo(AAliveCharacter* Character) override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Alive|Pickup")
 	TSubclassOf<AAliveWeapon> WeaponToSpawn;
-	
+
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Alive|Pickup")
 	AAliveWeapon* Weapon;
 
 private:
+	void OnPickUpEvent();
+	
 	void UpdateWeaponTransformAndVelocity();
 
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentTransformWithVelocity)
 	FTransformWithVelocity CurrentTransformWithVelocity;
 	UFUNCTION()
 	void OnRep_CurrentTransformWithVelocity();
-	
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastStartSimulatePhysics();
@@ -49,7 +50,6 @@ private:
 	void MulticastStopSimulatePhysics_Implementation(FTransformWithVelocity TransformWithVelocity);
 
 	bool bIsSimulatePhysics;
-	
+
 	FTimerHandle UpdateTransformTimerHandle;
 };
-

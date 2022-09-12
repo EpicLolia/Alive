@@ -22,6 +22,10 @@ class ALIVE_API AAliveWeapon : public AActor, public IAbilitySystemInterface
 public:
 	AAliveWeapon();
 
+	// Used for reconnection after disconnection
+	UFUNCTION(BlueprintCallable)
+	static void AdjustAllWeaponsVisibility();
+
 	FORCEINLINE AAliveCharacter* GetOwningCharacter() const { return OwningCharacter; }
 
 	// Called when added to inventory. Owner Should have AbilitySystemComponent
@@ -127,8 +131,7 @@ private:
 public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	// Cache the activatable abilities added by this weapon
-	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
+	const TArray<FGameplayAbilitySpecHandle>& GetWeaponAbilitySpecHandles() const { return WeaponAbilitySpecHandles; }
 
 protected:
 	UPROPERTY()
@@ -146,4 +149,7 @@ private:
 	int32 GetWeaponAbilityLevel() const;
 	// Cache tag
 	FGameplayTag WeaponIsFiringTag;
+
+	// Cache the activatable abilities added by this weapon
+	TArray<FGameplayAbilitySpecHandle> WeaponAbilitySpecHandles;
 };

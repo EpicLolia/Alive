@@ -29,12 +29,8 @@ protected:
 
 	virtual bool CanPickUp(const AAliveCharacter* Character) const;
 	virtual void GivePickupTo(AAliveCharacter* Character);
-	
-	UFUNCTION(BlueprintImplementableEvent, Category = "Pickup")
-	void OnPickUpEvent();
-	
+
 public:
-	// Broadcast on the server only.
 	FPickUpDelegate OnPickUp;
 	
 protected:
@@ -45,7 +41,7 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Pickup", meta=(AllowPrivateAccess = true))
 	class USphereComponent* CollisionComp;
 	
-	UFUNCTION(NetMulticast,Unreliable)
+	UFUNCTION(NetMulticast,Reliable)
 	void MulticastPickUpEvent();
 	void MulticastPickUpEvent_Implementation();
 

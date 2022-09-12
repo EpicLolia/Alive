@@ -97,9 +97,9 @@ void AAliveCharacter::ChangeWeaponAndRequestServer(AAliveWeapon* Weapon)
 	// Cancel the Abilities of previous weapon. Will not remove the projectile that is already fired. 
 	if (PreviousWeapon)
 	{
-		for (const auto& ability : PreviousWeapon->WeaponAbilitySpecHandles)
+		for (const auto& Ability : PreviousWeapon->GetWeaponAbilitySpecHandles())
 		{
-			AbilitySystemComponent->CancelAbilityHandle(ability);
+			AbilitySystemComponent->CancelAbilityHandle(Ability);
 		}
 	}
 
@@ -111,7 +111,7 @@ void AAliveCharacter::ChangeWeaponAndRequestServer(AAliveWeapon* Weapon)
 
 void AAliveCharacter::ServerChangeWeapon_Implementation(AAliveWeapon* Weapon)
 {
-	AAliveWeapon* PreviousWeapon = CurrentWeapon;
+	const AAliveWeapon* PreviousWeapon = CurrentWeapon;
 	CurrentWeapon = Weapon;
 	OnRep_CurrentWeapon(PreviousWeapon);
 }
