@@ -8,7 +8,6 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "Weapon/AliveWeapon.h"
 
 APickup::APickup()
@@ -42,11 +41,11 @@ void APickup::TryToPickItUp(AAliveCharacter* Character)
 	
 	GivePickupTo(Character);
 
-	NetMulticast_PickUpEvent();
-
-	Destroy();
+	MulticastPickUpEvent();
+	OnPickUp.Broadcast();
+	
+	SetLifeSpan(0.1f);
 }
-
 
 void APickup::GivePickupTo(AAliveCharacter* Character)
 {
@@ -73,7 +72,7 @@ void APickup::GivePickupTo(AAliveCharacter* Character)
 	}
 }
 
-void APickup::NetMulticast_PickUpEvent_Implementation()
+void APickup::MulticastPickUpEvent_Implementation()
 {
 	OnPickUpEvent();
 }

@@ -34,8 +34,9 @@ public:
 
 	void SetWeaponVisibility(bool bWeaponVisibility) const;
 
-	UProjectileComponent* GetProjectileComponent() const { return ProjectileComponent; }
+	FORCEINLINE UProjectileComponent* GetProjectileComponent() const { return ProjectileComponent; }
 
+	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
@@ -56,7 +57,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "AliveWeapon", meta=(AllowPrivateAccess = true))
 	UProjectileComponent* ProjectileComponent;
-	
+
 public:
 	// Must set up FirePointSocket in Alive|Transform. 
 	UFUNCTION(BlueprintCallable, Category = "Alive")
@@ -106,13 +107,13 @@ protected:
 	// Only the client's fire action will be affected. Server do not care about it.
 	UPROPERTY(BlueprintReadWrite, Category = "Alive")
 	FGameplayTag FireMode;
-	
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Effect")
 	UParticleSystem* OpenFireEmitter;
-	
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Effect")
 	USoundBase* OpenFireSound;
-	
+
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Ammo")
 	float MaxSpreadAngle;
 

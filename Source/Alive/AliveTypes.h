@@ -13,6 +13,39 @@ enum class EMatchState : uint8
 	Evaluate
 };
 
+USTRUCT()
+struct FTransformWithVelocity
+{
+	GENERATED_BODY()
+
+	FTransformWithVelocity(const FTransform& InTransform = FTransform(), FVector InVelocity = FVector())
+		: Location(InTransform.GetLocation())
+		  , Rotation(InTransform.GetRotation())
+		  , Velocity(InVelocity)
+	{
+	}
+
+	UPROPERTY()
+	FVector_NetQuantize Location;
+	UPROPERTY()
+	FQuat Rotation;
+	UPROPERTY()
+	FVector_NetQuantize Velocity;
+
+	FTransform ToTransform() const { return FTransform(Rotation, Location); }
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+};
+
+template <>
+struct TStructOpsTypeTraits<FTransformWithVelocity> : public TStructOpsTypeTraitsBase2<FTransformWithVelocity>
+{
+	enum
+	{
+		WithNetSerializer = true,
+	};
+};
+
 /**
  * FDamageResult
  * 

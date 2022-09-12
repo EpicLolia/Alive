@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "Pickup.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FPickUpDelegate);
+
 class AAliveCharacter;
 
 /**
@@ -19,20 +21,23 @@ class ALIVE_API APickup : public AActor
 public:
 	APickup();
 
-protected:
-	virtual void BeginPlay() override;
-
-public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	void TryToPickItUp(AAliveCharacter* Character);
 
 protected:
+	virtual void BeginPlay() override;
+
 	virtual bool CanPickUp(const AAliveCharacter* Character) const;
 	virtual void GivePickupTo(AAliveCharacter* Character);
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "Pickup")
 	void OnPickUpEvent();
-
+	
+public:
+	// Broadcast on the server only.
+	FPickUpDelegate OnPickUp;
+	
+protected:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Pickup")
 	TArray<TSubclassOf<class UGameplayEffect>> EffectClasses;
 
@@ -41,8 +46,8 @@ private:
 	class USphereComponent* CollisionComp;
 	
 	UFUNCTION(NetMulticast,Unreliable)
-	void NetMulticast_PickUpEvent();
-	void NetMulticast_PickUpEvent_Implementation();
+	void MulticastPickUpEvent();
+	void MulticastPickUpEvent_Implementation();
 
 	// Only trigger once
 	bool bHasBeenTriggered = false;

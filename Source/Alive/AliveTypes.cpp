@@ -1,6 +1,19 @@
 ﻿#include "AliveTypes.h"
 
 
+bool FTransformWithVelocity::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
+{
+	bool bOutSuccessLocal = true;
+	Location.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+	Rotation.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+	Velocity.NetSerialize(Ar, Map, bOutSuccessLocal);
+	bOutSuccess &= bOutSuccessLocal;
+
+	return true;
+}
+
 bool FDamageResult::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSuccess)
 {
 	OppositeLocation.NetSerialize(Ar, Map, bOutSuccess);
@@ -12,6 +25,5 @@ bool FDamageResult::NetSerialize(FArchive& Ar, UPackageMap* Map, bool& bOutSucce
 	bCriticalHit = (Flags & (1 << 1)) ? 1 : 0;
 	bWeakness = (Flags & (1 << 2)) ? 1 : 0;
 
-	bOutSuccess = true;
 	return true;
 }
