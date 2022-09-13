@@ -80,7 +80,7 @@ void APlayerCharacter::BeginPlay()
 void APlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	
+
 	AAlivePlayerState* PS = NewController->GetPlayerState<AAlivePlayerState>();
 	if (PS)
 	{
@@ -93,8 +93,8 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 
 		InitializeWithAbilitySystem();
 	}
-	
-	if(NewController->IsLocalPlayerController())
+
+	if (NewController->IsLocalPlayerController())
 	{
 		OnPossessedLocally(Cast<APlayerController>(NewController));
 	}
@@ -103,16 +103,16 @@ void APlayerCharacter::PossessedBy(AController* NewController)
 void APlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
-	
+
 	const AAlivePlayerState* PS = Cast<AAlivePlayerState>(GetPlayerState());
 	if (PS)
 	{
 		AAlivePlayerController* PC = PS->GetAlivePlayerController();
-		if(PC && PC->IsLocalPlayerController())
+		if (PC && PC->IsLocalPlayerController())
 		{
 			OnPossessedLocally(PC);
 		}
-		
+
 		AbilitySystemComponent = PS->GetAliveAbilitySystemComponent();
 
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
@@ -171,7 +171,7 @@ void APlayerCharacter::OnDeath(AActor* DamageInstigator)
 			}
 		}
 		// Discard All Weapons
-		for(const auto& Weapon:InventoryComponent->GetWeaponInventory())
+		for (const auto& Weapon : InventoryComponent->GetWeaponInventory())
 		{
 			Weapon->RemoveFormOwningCharacter();
 			Weapon->SetLifeSpan(0.1f);
@@ -211,9 +211,11 @@ void APlayerCharacter::MoveRight(float Value)
 
 void APlayerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	if (!bIsTouching)
+	FVector2D ViewportSize;
+	GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
+	if (!bIsRotating && Location.X > ViewportSize.X / 4)
 	{
-		bIsTouching = true;
+		bIsRotating = true;
 		CurrentFingerIndex = FingerIndex;
 		PreviousTouchLocation = Location;
 	}
@@ -221,22 +223,20 @@ void APlayerCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Locat
 
 void APlayerCharacter::TouchMoved(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	if (FingerIndex == CurrentFingerIndex)
+	if (bIsRotating && FingerIndex == CurrentFingerIndex)
 	{
-		FVector2D ViewportSize;
-		GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
-		if (Location.X > ViewportSize.X / 4) // 能在右3/4屏幕控制视角旋转
-		{
-			AddControllerYawInput((Location.X - PreviousTouchLocation.X) * 0.002 * TouchRotateRate);
-			AddControllerPitchInput((Location.Y - PreviousTouchLocation.Y) * 0.002 * TouchRotateRate);
-		}
+		AddControllerYawInput((Location.X - PreviousTouchLocation.X) * 0.002 * TouchRotateRate);
+		AddControllerPitchInput((Location.Y - PreviousTouchLocation.Y) * 0.002 * TouchRotateRate);
 		PreviousTouchLocation = Location;
 	}
 }
 
 void APlayerCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
-	bIsTouching = false;
+	if (bIsRotating && FingerIndex == CurrentFingerIndex)
+	{
+		bIsRotating = false;
+	}
 }
 
 void APlayerCharacter::AddCharacterAbilities()

@@ -57,7 +57,7 @@ private:
 
 	FVector PreviousTouchLocation;
 	ETouchIndex::Type CurrentFingerIndex;
-	bool bIsTouching = false;
+	bool bIsRotating = false;
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))

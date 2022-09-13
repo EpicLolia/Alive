@@ -99,7 +99,7 @@ void APickupWeapon::OnRep_CurrentTransformWithVelocity()
 	}
 }
 
-inline void APickupWeapon::MulticastStartSimulatePhysics_Implementation()
+void APickupWeapon::MulticastStartSimulatePhysics_Implementation()
 {
 	check(Weapon);
 
