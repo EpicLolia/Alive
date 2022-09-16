@@ -18,3 +18,5 @@ Plugins/*/Intermediate/
 *.suo
 *.xcodeproj
 *.xcworkspace
+Content/Alive/Maps/Demoscene.umap
+Content/Alive/Maps/Demoscene_BuiltData.uasset
