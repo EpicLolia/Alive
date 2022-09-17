@@ -83,7 +83,7 @@ protected:
 	FProjectileHitDelegate OnProjectileHit;
 private:
 	/**
-	 * Only Useful on the server.
+	 * Only Useful on the server. Apply damage on the server while hitting a valid target.
 	 */
 	struct FServerProjectileHandle
 	{
