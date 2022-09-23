@@ -5,9 +5,8 @@
 #include "CoreMinimal.h"
 #include "AliveTypes.h"
 #include "Pickup.h"
+#include "Weapon/WeaponType.h"
 #include "PickupWeapon.generated.h"
-
-class AAliveWeapon;
 
 UCLASS()
 class ALIVE_API APickupWeapon : public APickup
@@ -24,15 +23,20 @@ protected:
 
 	virtual bool CanPickUp(const AAliveCharacter* Character) const override;
 	virtual void GivePickupTo(AAliveCharacter* Character) override;
-	virtual void OnPickUpEvent() override;
+
+	void InitWeapon(class AWeapon* InitWeapon);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Alive|Pickup")
-	TSubclassOf<AAliveWeapon> WeaponToSpawn;
+	TSubclassOf<UWeaponType> WeaponType;
 
-	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Alive|Pickup")
-	AAliveWeapon* Weapon;
+	// Only valid on the server. 
+	UPROPERTY(BlueprintReadOnly, Category = "Alive|Pickup")
+	class AWeapon* Weapon;
 
 private:
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "WeaponMesh", meta=(AllowPrivateAccess = true))
+	USkeletalMeshComponent* WeaponMesh;
+
 	void UpdateWeaponTransformAndVelocity();
 
 	UPROPERTY(ReplicatedUsing=OnRep_CurrentTransformWithVelocity)
@@ -41,8 +45,8 @@ private:
 	void OnRep_CurrentTransformWithVelocity();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastStartSimulatePhysics();
-	void MulticastStartSimulatePhysics_Implementation();
+	void MulticastStartSimulatePhysics(const UWeaponType* PickupWeaponType);
+	void MulticastStartSimulatePhysics_Implementation(const UWeaponType* PickupWeaponType);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastStopSimulatePhysics(FTransformWithVelocity TransformWithVelocity);

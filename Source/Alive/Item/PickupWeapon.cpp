@@ -5,33 +5,33 @@
 #include "AliveLogChannels.h"
 #include "Character/AliveCharacter.h"
 #include "Character/PlayerCharacter.h"
-#include "Character/PlayerInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/AliveWeapon.h"
+#include "Weapon/Weapon.h"
+#include "Weapon/WeaponInventoryComponent.h"
 
 APickupWeapon::APickupWeapon()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	WeaponToSpawn = AAliveWeapon::StaticClass();
+
+	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(FName("WeaponMesh"));
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetCollisionObjectType(ECC_WorldDynamic);
+	WeaponMesh->CastShadow = true;
+	WeaponMesh->SetVisibility(true, true);
+	WeaponMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
+	RootComponent->SetupAttachment(WeaponMesh);
+	RootComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	RootComponent = WeaponMesh;
 }
 
 void APickupWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (HasAuthority())
+
+	if (WeaponType && HasAuthority())
 	{
-		Weapon = GetWorld()->SpawnActor<AAliveWeapon>(WeaponToSpawn, GetTransform());
-		check(Weapon);
-
-		this->AttachToActor(Weapon, FAttachmentTransformRules::KeepRelativeTransform);
-		this->SetActorRelativeTransform(FTransform());
-
-		// Wait Weapon pointer to be replicated.
-		GetWorld()->GetTimerManager().SetTimerForNextTick(this, &APickupWeapon::MulticastStartSimulatePhysics);
-
-		GetWorld()->GetTimerManager().SetTimer(UpdateTransformTimerHandle, this, &APickupWeapon::UpdateWeaponTransformAndVelocity,
-		                                       GetWorldSettings()->GetEffectiveTimeDilation()/* 1s */, true, 0.1f);
+		InitWeapon(AWeapon::NewWeapon(this, WeaponType, GetTransform()));
 	}
 }
 
@@ -39,7 +39,6 @@ void APickupWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(APickupWeapon, Weapon, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(APickupWeapon, CurrentTransformWithVelocity, COND_None);
 }
 
@@ -52,9 +51,8 @@ void APickupWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTr
 
 bool APickupWeapon::CanPickUp(const AAliveCharacter* Character) const
 {
-	// TODO: Limit on the number of weapons
 	return Super::CanPickUp(Character)
-		&& Character->CanAddWeapon(Weapon)
+		&& Cast<APlayerCharacter>(Character)
 		&& GetGameTimeSinceCreation() > 0.5f; // Should wait weapon pointer to be replicated.
 }
 
@@ -65,28 +63,34 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 	MulticastStopSimulatePhysics(CurrentTransformWithVelocity);
 
 	this->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	Character->AddWeapon(Weapon);
-
-	UpdateTransformTimerHandle.Invalidate();
-	//Weapon = nullptr; // Should I do this?
+	Cast<APlayerCharacter>(Character)->GetWeaponInventoryComponent()->AddWeaponToInventory(Weapon);
+	
+	GetWorld()->GetTimerManager().ClearTimer(UpdateTransformTimerHandle);
 }
 
-void APickupWeapon::OnPickUpEvent()
+void APickupWeapon::InitWeapon(AWeapon* InitWeapon)
 {
-	Weapon->SetWeaponVisibility(false);
+	check(!Weapon);
+	check(HasAuthority());
+	check(InitWeapon);
+	Weapon = InitWeapon;
+
+	MulticastStartSimulatePhysics(Weapon->GetWeaponType());
+	GetWorld()->GetTimerManager().SetTimer(UpdateTransformTimerHandle, this, &APickupWeapon::UpdateWeaponTransformAndVelocity,
+	                                       GetWorldSettings()->GetEffectiveTimeDilation()/* 1s */, true, 0.1f);
 }
 
 void APickupWeapon::UpdateWeaponTransformAndVelocity()
 {
 	check(HasAuthority());
 
-	CurrentTransformWithVelocity = FTransformWithVelocity(Weapon->GetActorTransform(), Weapon->GetVelocity());
+	CurrentTransformWithVelocity = FTransformWithVelocity(GetActorTransform(), GetVelocity());
 
 	// When should we stop simulate. Can be non-stop if you want.
-	if (Weapon->GetVelocity().Size() < 10.0f && GetGameTimeSinceCreation() > 1.0f)
+	if (GetVelocity().Size() < 10.0f && GetGameTimeSinceCreation() > 1.0f)
 	{
 		MulticastStopSimulatePhysics(CurrentTransformWithVelocity);
-		UpdateTransformTimerHandle.Invalidate();
+		GetWorld()->GetTimerManager().ClearTimer(UpdateTransformTimerHandle);
 	}
 }
 
@@ -94,32 +98,30 @@ void APickupWeapon::OnRep_CurrentTransformWithVelocity()
 {
 	if (bIsSimulatePhysics)
 	{
-		Weapon->SetActorTransform(CurrentTransformWithVelocity.ToTransform(), false, nullptr, ETeleportType::TeleportPhysics);
-		Weapon->GetWeaponMesh()->SetPhysicsLinearVelocity(CurrentTransformWithVelocity.Velocity);
+		SetActorTransform(CurrentTransformWithVelocity.ToTransform(), false, nullptr, ETeleportType::TeleportPhysics);
+		WeaponMesh->SetPhysicsLinearVelocity(CurrentTransformWithVelocity.Velocity);
 	}
 }
 
-void APickupWeapon::MulticastStartSimulatePhysics_Implementation()
+void APickupWeapon::MulticastStartSimulatePhysics_Implementation(const UWeaponType* PickupWeaponType)
 {
-	check(Weapon);
-
-	Weapon->GetWeaponMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-	Weapon->GetWeaponMesh()->SetSimulatePhysics(true);
+	WeaponMesh->SetSkeletalMesh(PickupWeaponType->WeaponMesh);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+	WeaponMesh->SetSimulatePhysics(true);
 	bIsSimulatePhysics = true;
 
 	if (HasAuthority())
 	{
 		// Give mesh an impulse
 		const FVector InitImpulse(FMath::RandRange(-500.0f, 500.0f), FMath::RandRange(-500.0f, 500.0f), FMath::RandRange(200.0f, 1000.0f));
-		Weapon->GetWeaponMesh()->AddImpulse(InitImpulse);
+		WeaponMesh->AddImpulse(InitImpulse);
 	}
 }
 
 void APickupWeapon::MulticastStopSimulatePhysics_Implementation(FTransformWithVelocity TransformWithVelocity)
 {
-	check(Weapon);
-	Weapon->DisableComponentsSimulatePhysics();
-	Weapon->GetWeaponMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Weapon->SetActorTransform(TransformWithVelocity.ToTransform());
+	DisableComponentsSimulatePhysics();
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SetActorTransform(TransformWithVelocity.ToTransform());
 	bIsSimulatePhysics = false;
 }

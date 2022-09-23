@@ -68,7 +68,7 @@ void APickupGenerator::BeginPlay()
 
 void APickupGenerator::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	NextPickupGenerateTimerHandle.Invalidate();
+	GetWorld()->GetTimerManager().ClearTimer(NextPickupGenerateTimerHandle);
 	
 	Super::EndPlay(EndPlayReason);
 }

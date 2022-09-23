@@ -33,7 +33,6 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnPickUpEvent", Category="Alive|Pickup")
 	void K2_OnPickUpEvent();
-	virtual void OnPickUpEvent() { return; }
 	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Pickup")
 	TArray<TSubclassOf<class UGameplayEffect>> EffectClasses;
@@ -41,6 +40,7 @@ protected:
 private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Pickup", meta=(AllowPrivateAccess = true))
 	class USphereComponent* CollisionComp;
+	
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastPickUpEvent();

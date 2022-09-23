@@ -135,6 +135,17 @@ void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(AWeapon* 
 	ServerRemoveWeaponFromInventory(Weapon);
 }
 
+void UWeaponInventoryComponent::RemoveAllWeapons()
+{
+	for(const auto& Weapon: WeaponInventory)
+	{
+		Weapon->DiscardFromOwner();
+		// TODO: Spawn Pickup
+		Weapon->SetLifeSpan(0.1f);
+	}
+	WeaponInventory.Empty();
+}
+
 void UWeaponInventoryComponent::ServerRemoveWeaponFromInventory_Implementation(AWeapon* Weapon)
 {
 	Weapon->DiscardFromOwner();

@@ -9,6 +9,7 @@
 
 #include "PlayerCharacter.generated.h"
 
+class UWeaponInventoryComponent;
 class USpringArmComponent;
 class UPlayerInventoryComponent;
 UCLASS()
@@ -20,12 +21,9 @@ public:
 	// Sets default values for this character's properties
 	APlayerCharacter(const class FObjectInitializer& ObjectInitializer);
 
-	virtual bool CanAddWeapon(AAliveWeapon* Weapon) const override;
-	virtual void AddWeapon(AAliveWeapon* Weapon) override;
-	
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	UPlayerInventoryComponent* GetPlayerInventoryComponent() const { return InventoryComponent; }
+	UWeaponInventoryComponent* GetWeaponInventoryComponent() const { return InventoryComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerCharacter")
 	class UAliveCharacterMovementComponent* GetAliveCharacterMovementComponent();
@@ -69,8 +67,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UPlayerInventoryComponent* InventoryComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UWeaponInventoryComponent* InventoryComponent;
 
 	// Should bind input while giving ability, TODO: Ability Level
 	virtual void AddCharacterAbilities() override final;

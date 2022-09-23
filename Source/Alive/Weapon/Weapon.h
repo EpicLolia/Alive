@@ -19,14 +19,17 @@ class ALIVE_API AWeapon : public AActor
 {
 	GENERATED_BODY()
 
-public:
 	AWeapon();
+public:
+
+	UFUNCTION(BlueprintCallable,meta= (DefaultToSelf = GenerateInstigator))
+	static AWeapon* NewWeapon(const AActor* GenerateInstigator, TSubclassOf<UWeaponType> WeaponTypeClass, const FTransform& Transform);
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
 
 	const UWeaponType* GetWeaponType() const { return WeaponType; }
-	void SetWeaponType(TSubclassOf<UWeaponType> WeaponTypeClass);
-
+	
 	// Only called on the server.
 	void AddTo(AAliveCharacter* Character);
 	void DiscardFromOwner();
@@ -59,4 +62,6 @@ private:
 
 	void GrantAbilitiesToOwner();
 	void RemoveAbilitiesFromOwner();
+
+	void SetWeaponType(TSubclassOf<UWeaponType> WeaponTypeClass);
 };

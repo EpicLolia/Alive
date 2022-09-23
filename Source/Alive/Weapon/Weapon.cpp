@@ -13,7 +13,16 @@ AWeapon::AWeapon()
 	PrimaryActorTick.bCanEverTick = true;
 	SetReplicates(true);
 	// Caution! Only replicated to owner. 
-	//bOnlyRelevantToOwner = true;
+	bOnlyRelevantToOwner = true;
+}
+
+AWeapon* AWeapon::NewWeapon(const AActor* GenerateInstigator, TSubclassOf<UWeaponType> WeaponTypeClass, const FTransform& Transform)
+{
+	check(GenerateInstigator);
+	check(GenerateInstigator->HasAuthority());
+	AWeapon* NewWeapon = GenerateInstigator->GetWorld()->SpawnActor<AWeapon>(AWeapon::StaticClass(),Transform);
+	NewWeapon->SetWeaponType(WeaponTypeClass);
+	return NewWeapon;
 }
 
 void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -91,7 +100,7 @@ void AWeapon::GrantAbilitiesToOwner()
 	for (const TSubclassOf<UGameplayAbility>& Ability : WeaponType->AbilitiesGrantedToOwner)
 	{
 		AbilitySpecHandles.Add(GetOwnerAsAliveCharacter()->GetAbilitySystemComponent()->GiveAbility(
-			FGameplayAbilitySpec(Ability)));
+			FGameplayAbilitySpec(Ability,1,INDEX_NONE,this)));
 	}
 }
 

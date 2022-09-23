@@ -13,6 +13,7 @@
 #include "Player/AlivePlayerController.h"
 #include "Player/AlivePlayerState.h"
 #include "Weapon/AliveWeapon.h"
+#include "Weapon/WeaponInventoryComponent.h"
 
 APlayerCharacter::APlayerCharacter(const class FObjectInitializer& ObjectInitializer)
 //:Super(ObjectInitializer.
@@ -51,20 +52,10 @@ APlayerCharacter::APlayerCharacter(const class FObjectInitializer& ObjectInitial
 	FirstPersonCameraComponent->bAutoActivate = false;
 
 	// Create a PlayerInventoryComponent
-	InventoryComponent = CreateDefaultSubobject<UPlayerInventoryComponent>(TEXT("InventoryComponent"));
+	InventoryComponent = CreateDefaultSubobject<UWeaponInventoryComponent>(TEXT("InventoryComponent"));
 	InventoryComponent->bAutoActivate = true;
 
 	bHasBoundAbilityInput = false;
-}
-
-bool APlayerCharacter::CanAddWeapon(AAliveWeapon* Weapon) const
-{
-	return !InventoryComponent->HasSameWeapon(Weapon);
-}
-
-void APlayerCharacter::AddWeapon(AAliveWeapon* Weapon)
-{
-	InventoryComponent->AddWeapon(Weapon);
 }
 
 UAliveCharacterMovementComponent* APlayerCharacter::GetAliveCharacterMovementComponent()
@@ -170,12 +161,7 @@ void APlayerCharacter::OnDeath(AActor* DamageInstigator)
 				InstigatorPS->AddKillCount();
 			}
 		}
-		// Discard All Weapons
-		for (const auto& Weapon : InventoryComponent->GetWeaponInventory())
-		{
-			Weapon->RemoveFormOwningCharacter();
-			Weapon->SetLifeSpan(0.1f);
-		}
+		InventoryComponent->RemoveAllWeapons();
 	}
 }
 

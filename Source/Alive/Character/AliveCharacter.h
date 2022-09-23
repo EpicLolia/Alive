@@ -38,9 +38,6 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-	virtual bool CanAddWeapon(AAliveWeapon* Weapon) const { return false; }
-	virtual void AddWeapon(AAliveWeapon* Weapon) { return; }
-
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

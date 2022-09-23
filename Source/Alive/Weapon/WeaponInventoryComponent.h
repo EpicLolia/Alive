@@ -9,10 +9,12 @@
 
 class AWeapon;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAmmoChangedDelegate, int32, CurrentAmmo);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FWeaponPerformanceChangedDelegate, FWeaponPerformance, CurrentWeaponPerformance);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWeaponSpecInventoryChangedDelegate);
 
-UCLASS(ClassGroup=(Weapon), meta=(BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup=(Weapon), meta=(BlueprintSpawnableComponent))
 class ALIVE_API UWeaponInventoryComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -23,7 +25,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable)
-	bool HasSameType(const UWeaponType* WeaponType)const;
+	bool HasSameType(const UWeaponType* WeaponType) const;
 	/** Only work on the server. */
 	UFUNCTION(BlueprintCallable)
 	void AddWeaponToInventory(AWeapon* Weapon);
@@ -32,6 +34,11 @@ public:
 	void ChangeCurrentWeaponAndCallServer(AWeapon* Weapon = nullptr);
 	UFUNCTION(BlueprintCallable)
 	void RemoveWeaponFromInventoryAndCallServer(AWeapon* Weapon);
+
+	// Called while death
+	void RemoveAllWeapons();
+	
+	const TArray<AWeapon*>& GetWeaponInventory() const { return WeaponInventory; };
 
 	/** Only bound in the owner's actor. Used for UI. */
 	UPROPERTY(BlueprintAssignable)
@@ -45,28 +52,27 @@ public:
 	/** Only called on the owner. */
 	UPROPERTY(BlueprintAssignable)
 	FWeaponSpecInventoryChangedDelegate OnWeaponInventoryRemove;
-	
+
 protected:
 	/** Will be replicated on the simulated actor. Server and client should call UpdateWeaponPerformance by themselves. */
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = "UpdateWeaponPerformance")
 	FWeaponPerformance CurrentWeaponPerformance;
-
-private:
 	UFUNCTION()
 	void UpdateWeaponPerformance();
 
-	UFUNCTION(Server,Reliable)
+	/** Only replicated between server and weapon's owner. */
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_WeaponInventory)
+	TArray<AWeapon*> WeaponInventory;
+	UFUNCTION()
+	void OnRep_WeaponInventory(const TArray<AWeapon*>& OldInventory);
+
+private:
+	UFUNCTION(Server, Reliable)
 	void ServerRemoveWeaponFromInventory(AWeapon* Weapon);
-	UFUNCTION(Server,Reliable)
+	UFUNCTION(Server, Reliable)
 	void ServerChangeCurrentWeapon(AWeapon* Weapon);
 	void ChangeWeapon(AWeapon* Weapon);
-	
-	/** Only replicated between server and weapon's owner. */
-	UPROPERTY(ReplicatedUsing = OnRep_WeaponInventory)
-	TArray<AWeapon*> WeaponInventory;
-	
-UFUNCTION()
-	void OnRep_WeaponInventory(const TArray<AWeapon*>& OldInventory);
+
 	/** Only replicated between server and weapon's owner. */
 	UPROPERTY(Replicated)
 	AWeapon* CurrentWeapon;

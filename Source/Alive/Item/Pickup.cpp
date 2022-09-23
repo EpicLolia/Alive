@@ -75,7 +75,6 @@ void APickup::GivePickupTo(AAliveCharacter* Character)
 void APickup::MulticastPickUpEvent_Implementation()
 {
 	K2_OnPickUpEvent();
-	OnPickUpEvent();
 }
 
 bool APickup::CanPickUp(const AAliveCharacter* Character) const
