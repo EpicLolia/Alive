@@ -11,6 +11,22 @@ void FWeaponSpecHandle::GenerateNewHandle()
 	Handle = GHandle++;
 }
 
+void FWeaponSpec::PostReplicatedAdd(const FWeaponSpecContainer& InArraySerializer)
+{
+	if(InArraySerializer.Owner)
+	{
+		InArraySerializer.Owner->OnWeaponInventoryAdd.Broadcast();
+	}
+}
+
+void FWeaponSpec::PreReplicatedRemove(const FWeaponSpecContainer& InArraySerializer)
+{
+	if(InArraySerializer.Owner)
+	{
+		InArraySerializer.Owner->OnWeaponInventoryRemove.Broadcast();
+	}
+}
+
 void FWeaponSpec::PostReplicatedChange(const FWeaponSpecContainer& InArraySerializer)
 {
 	if(InArraySerializer.Owner)

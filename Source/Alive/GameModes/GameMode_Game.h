@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AliveGameMode.h"
+#include "Weapon/WeaponSpec.h"
 #include "GameMode_Game.generated.h"
 
 UCLASS()
@@ -16,6 +17,9 @@ public:
 
 	FTransform GetRandomSpawnTransform(FName Tag = FName("None")) const;
 	FORCEINLINE int32 GetPlayerRespawnCooldown() const { return PlayerRespawnCooldown; }
+
+	UFUNCTION(BlueprintCallable)
+	const FWeaponSpec GenerateNewWeapon(TSubclassOf<UWeaponType> Weapon);
 	
 protected:
 	virtual void BeginPlay() override;

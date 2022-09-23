@@ -3,12 +3,16 @@
 
 #include "WeaponInventoryComponent.h"
 
+#include "AliveLogChannels.h"
+#include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 
 UWeaponInventoryComponent::UWeaponInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
+
+	WeaponInventory.RegisterWithOwner(this);
 }
 
 void UWeaponInventoryComponent::BeginPlay()
@@ -31,13 +35,13 @@ void UWeaponInventoryComponent::UpdateWeaponPerformance()
 	OnCurrentWeaponPerformanceChanged.Broadcast(CurrentWeaponPerformance);
 }
 
-const FWeaponPerformance UWeaponInventoryComponent::GenerateWeaponPerformance(const UWeapon* WeaponType) const
+const FWeaponPerformance UWeaponInventoryComponent::GenerateWeaponPerformance(const UWeaponType* WeaponType) const
 {
 	// TODO: Get more information from player's custom appearance settings.
 	return FWeaponPerformance(WeaponType);
 }
 
-void UWeaponInventoryComponent::ServerChangeWeapon_Implementation(const FWeaponSpecHandle& WeaponSpecHandle)
+void UWeaponInventoryComponent::ServerChangeWeapon_Implementation(const FWeaponSpecHandle WeaponSpecHandle)
 {
 	ChangeWeapon(WeaponSpecHandle);
 }
@@ -48,6 +52,7 @@ void UWeaponInventoryComponent::ChangeWeapon(const FWeaponSpecHandle& WeaponSpec
 	check(WeaponSpec);
 	CurrentWeaponPerformance = GenerateWeaponPerformance(WeaponSpec->WeaponType);
 	CurrentWeapon = WeaponSpecHandle;
+	UpdateWeaponPerformance();
 }
 
 FWeaponSpec* UWeaponInventoryComponent::GetWeaponSpecFromHandle(const FWeaponSpecHandle& WeaponHandle)
@@ -67,11 +72,6 @@ const FWeaponSpec* UWeaponInventoryComponent::GetWeaponSpecFromHandle(const FWea
 	return nullptr;
 }
 
-void UWeaponInventoryComponent::WeaponInventoryChanged()
-{
-	OnWeaponInventoryChanged.Broadcast();
-}
-
 void UWeaponInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -83,9 +83,10 @@ void UWeaponInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 
 	DOREPLIFETIME_CONDITION(UWeaponInventoryComponent, CurrentWeaponPerformance, COND_SimulatedOnly)
 	DOREPLIFETIME_CONDITION(UWeaponInventoryComponent, WeaponInventory, COND_OwnerOnly)
+	
 }
 
-bool UWeaponInventoryComponent::HasSameType(const UWeapon* Weapon) const
+bool UWeaponInventoryComponent::HasSameType(const UWeaponType* Weapon) const
 {
 	for (const auto& WeaponSpec : WeaponInventory.Items)
 	{
@@ -104,6 +105,11 @@ void UWeaponInventoryComponent::AddWeaponToInventory(const FWeaponSpec& WeaponSp
 
 	WeaponInventory.Items.Emplace(WeaponSpec);
 	WeaponInventory.MarkItemDirty(WeaponInventory.Items.Last());
+	if (Cast<APawn>(GetOwner()) && Cast<APawn>(GetOwner())->IsLocallyControlled())
+	{
+		// If server is owner.
+		OnWeaponInventoryAdd.Broadcast();
+	}
 }
 
 void UWeaponInventoryComponent::ChangeWeaponAndCallServer(const FWeaponSpecHandle& WeaponSpecHandle)
@@ -124,7 +130,7 @@ void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(const FWe
 			ChangeWeaponAndCallServer(WeaponInventory.Items[0].GetWeaponSpecHandle());
 		}
 	}
-	
+
 	if (const FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(WeaponSpecHandle))
 	{
 		if (!GetOwner()->HasAuthority())
@@ -137,7 +143,7 @@ void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(const FWe
 	}
 }
 
-void UWeaponInventoryComponent::ServerRemoveWeaponFromInventory_Implementation(const FWeaponSpecHandle& WeaponSpecHandle)
+void UWeaponInventoryComponent::ServerRemoveWeaponFromInventory_Implementation(const FWeaponSpecHandle WeaponSpecHandle)
 {
 	if (const FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(WeaponSpecHandle))
 	{
@@ -172,7 +178,7 @@ void UWeaponInventoryComponent::ApplyCurrentWeaponCost()
 			--WeaponSpec->CurrentClipAmmo;
 			//GetWorld()->GetTimerManager().SetTimer()
 			WeaponInventory.MarkItemDirty(*WeaponSpec);
-			OnCurrentAmmoChanged.Broadcast(WeaponSpec->CurrentClipAmmo);
+			//OnCurrentAmmoChanged.Broadcast(WeaponSpec->CurrentClipAmmo);
 		}
 	}
 }

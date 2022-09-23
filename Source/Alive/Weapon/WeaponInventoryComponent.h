@@ -19,14 +19,14 @@ struct FWeaponView
 	GENERATED_BODY()
 	FWeaponView() { return; }
 
-	FWeaponView(const UWeapon* InWeaponType, FWeaponSpecHandle InWeaponHandle)
+	FWeaponView(const UWeaponType* InWeaponType, FWeaponSpecHandle InWeaponHandle)
 		: WeaponType(InWeaponType), WeaponHandle(InWeaponHandle)
 	{
 	}
 
 	/** Always the ClassDefaultObject*/
 	UPROPERTY(BlueprintReadOnly)
-	const UWeapon* WeaponType;
+	const UWeaponType* WeaponType;
 
 	UPROPERTY(BlueprintReadOnly)
 	FWeaponSpecHandle WeaponHandle;
@@ -43,7 +43,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable)
-	bool HasSameType(const UWeapon* Weapon)const;
+	bool HasSameType(const UWeaponType* Weapon)const;
 	/** Only work on the server. */
 	UFUNCTION(BlueprintCallable)
 	void AddWeaponToInventory(const FWeaponSpec& WeaponSpec);
@@ -61,10 +61,14 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FAmmoChangedDelegate OnCurrentAmmoChanged;
 	UPROPERTY(BlueprintAssignable)
-	FWeaponSpecInventoryChangedDelegate OnWeaponInventoryChanged;
-	UPROPERTY(BlueprintAssignable)
 	FWeaponPerformanceChangedDelegate OnCurrentWeaponPerformanceChanged;
-	
+
+	/** Only called on the owner. */
+	UPROPERTY(BlueprintAssignable)
+	FWeaponSpecInventoryChangedDelegate OnWeaponInventoryAdd;
+	/** Only called on the owner. Replicated from server, there may be some latency. */
+	UPROPERTY(BlueprintAssignable)
+	FWeaponSpecInventoryChangedDelegate OnWeaponInventoryRemove;
 protected:
 	virtual void BeginPlay() override;
 
@@ -79,12 +83,12 @@ private:
 	UFUNCTION()
 	void UpdateWeaponPerformance();
 
-	const FWeaponPerformance GenerateWeaponPerformance(const UWeapon* WeaponType)const;
+	const FWeaponPerformance GenerateWeaponPerformance(const UWeaponType* WeaponType)const;
 	
 	UFUNCTION(Server,Reliable)
-	void ServerRemoveWeaponFromInventory(const FWeaponSpecHandle& WeaponSpecHandle);
+	void ServerRemoveWeaponFromInventory(const FWeaponSpecHandle WeaponSpecHandle);
 	UFUNCTION(Server,Reliable)
-	void ServerChangeWeapon(const FWeaponSpecHandle& WeaponSpecHandle);
+	void ServerChangeWeapon(const FWeaponSpecHandle WeaponSpecHandle);
 	void ChangeWeapon(const FWeaponSpecHandle& WeaponSpecHandle);
 	
 	/** Caution! The return ptr may be invalid if the inventory is changed. */
@@ -92,10 +96,8 @@ private:
 	const FWeaponSpec* GetWeaponSpecFromHandle(const FWeaponSpecHandle& WeaponHandle) const;
 	
 	/** Only replicated between server and weapon's owner. */
-	UPROPERTY(ReplicatedUsing = "WeaponInventoryChanged")
+	UPROPERTY(Replicated)
 	FWeaponSpecContainer WeaponInventory;
-	UFUNCTION()
-	void WeaponInventoryChanged();
 
 	/** Only replicated between server and weapon's owner. */
 	UPROPERTY(Replicated)

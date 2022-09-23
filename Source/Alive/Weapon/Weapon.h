@@ -3,141 +3,58 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
-#include "UObject/Object.h"
+#include "GameplayAbilitySpec.h"
+#include "WeaponType.h"
+#include "GameFramework/Actor.h"
 #include "Weapon.generated.h"
 
-class UGameplayAbility;
+class UWeaponType;
+class AAliveCharacter;
 
-/** UWeapon */
-UCLASS(Blueprintable)
-class ALIVE_API UWeapon : public UObject
+/**
+ * AWeapon
+ */
+UCLASS(BlueprintType)
+class ALIVE_API AWeapon : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
-	TArray<TSubclassOf<UGameplayAbility>> AbilitiesGrantedToOwner;
+	AWeapon();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void Tick(float DeltaTime) override;
 
-	/** The type of ammo used in this weapon. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ammo")
-	FGameplayTag AmmoType;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ammo")
-	int32 MaxClipAmmo = 30;
-
-	/** How many bullets will be fired in a single firing. e.g. Rifle or pistol = 1, shotgun > 1 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ammo")
-	int32 CartridgeAmmo;
-
-	/* All fire modes this weapon has. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile")
-	FGameplayTagContainer FireModes;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Spread")
-	float MinSpreadAngle;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Spread")
-	float SpreadAngleIncreaseRate;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Spread")
-	float MaxSpreadAngle;
-
-	/**
-	 * This determines whether the projectile will spawn projectile actors.
-	 * If true, the parameters of the projectile should be set in the projectile actor.
-	 * If false, use ray trace.
-	 */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile")
-	bool bEntity = false;
-	/** Do not work on projectile actor. Units: m */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
-		meta = (EditCondition = "!bEntity", EditConditionHides, ClampMin = 0.5f, ClampMax = 3000.0f))
-	float Range = 600.0f;
-
-	/**
-	 * Determines whether the projectile is affected by gravity.
-	 * Do not work on projectile actor.
-	 * Units: m/s^2
-	 **/
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
-		meta = (EditCondition = "bGravity", ClampMin = 0.1f, ClampMax = 100.0f))
-	float Gravity = 10.0f;
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
-		meta = (InlineEditConditionToggle = "Gravity"))
-	bool bGravity = false;
-
-	/**
-	 * Determines whether the projectile is affected by gravity.
-	 * If false, it will perform like a hit scan, and get hit result immediately.
-	 * Do not work on projectile actor.
-	 * Units: m/s 
-	 */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
-		meta = (EditCondition = "bVelocity", ClampMin = 1.0f, ClampMax = 1200.0f))
-	float Velocity = 300.0f;
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
-		meta = (InlineEditConditionToggle = "Velocity"))
-	bool bVelocity = false;
-
-
-	/**
-	 * Performance
-	 */
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance")
-	USkeletalMesh* WeaponMesh;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance")
-	TArray<UMaterial*> WeaponMaterials;
-
-	// Relative Transform of weapon Mesh when equipped
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance")
-	FTransform WeaponMeshRelativeTransform;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance|Animation")
-	UAnimMontage* EquipMontage;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance|Animation")
-	UAnimMontage* MeleeMontage;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance|Effect")
-	TArray<UParticleSystem*> OpenFireEmitters;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance|Effect")
-	TArray<USoundBase*> OpenFireSounds;
-};
-
-/**
- * FWeaponPerformance
- * Replicated to every player.
- * Allow players to use different appearances and effects.
- */
-USTRUCT(BlueprintType)
-struct FWeaponPerformance
-{
-	GENERATED_BODY()
-
-	FWeaponPerformance() { return; }
+	void SetWeaponType(TSubclassOf<UWeaponType> WeaponTypeClass);
 	
-	FWeaponPerformance(const UWeapon* InWeaponType,
-	                   int32 InAppearanceType = 0,
-	                   int32 InOpenFireEmitterType = 0,
-	                   int32 InOpenFireSoundType = 0)
-		: WeaponType(InWeaponType),
-		  AppearanceType(InAppearanceType),
-		  OpenFireEmitterType(InOpenFireEmitterType),
-		  OpenFireSoundType(InOpenFireSoundType)
-	{
-	}
+	void AddTo(AAliveCharacter* Character);
+	void DiscardFromOwner();
 
-	/** Always the ClassDefaultObject. */
-	UPROPERTY(BlueprintReadOnly)
-	const UWeapon* WeaponType;
+	FWeaponPerformance GenerateWeaponPerformance()const;
+	
+	/** Ability can change ammo by this. */
+	UFUNCTION(BlueprintCallable)
+	void SetCurrentAmmo(int32 Ammo);
+	
+	/** Can be bound in the inventory component. */
+	FSimpleDelegate OnCurrentAmmoChanged;
+	
+protected:
+	/** Always the ClassDefaultObject */
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	const UWeaponType* WeaponType;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentAmmo, BlueprintReadOnly)
+	int32 CurrentAmmo;
+	UFUNCTION()
+	void OnRep_CurrentAmmo(int32 OldAmmo);
+	
+private:
+	// Record the skills given by this weapon. Only useful on the server because we should only add/remove with authority.
+	TArray<FGameplayAbilitySpecHandle> AbilitySpecHandles;
 
-	UPROPERTY(BlueprintReadOnly)
-	int32 AppearanceType;
+	AAliveCharacter* GetOwnerAsAliveCharacter() const;
 
-	UPROPERTY(BlueprintReadOnly)
-	int32 OpenFireEmitterType;
-
-	UPROPERTY(BlueprintReadOnly)
-	int32 OpenFireSoundType;
+	void GrantAbilitiesToOwner();
+	void RemoveAbilitiesFromOwner();
 };
+

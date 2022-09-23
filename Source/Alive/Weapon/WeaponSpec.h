@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Weapon.h"
+#include "WeaponType.h"
 #include "WeaponSpec.generated.h"
 
 class UWeaponInventoryComponent;
@@ -33,6 +33,7 @@ struct FWeaponSpecHandle : public FFastArraySerializerItem
 	FString ToString() const { return IsValid() ? FString::FromInt(Handle) : TEXT("Invalid"); }
 
 private:
+	UPROPERTY()
 	int32 Handle;
 };
 
@@ -46,7 +47,7 @@ struct FWeaponSpec : public FFastArraySerializerItem
 
 	FWeaponSpec(): CurrentClipAmmo(0) { return; }
 
-	FWeaponSpec(const UWeapon* InWeaponType): WeaponType(InWeaponType)
+	FWeaponSpec(const UWeaponType* InWeaponType): WeaponType(InWeaponType)
 	{
 		WeaponSpecHandle.GenerateNewHandle();
 		if (WeaponType)
@@ -65,11 +66,13 @@ struct FWeaponSpec : public FFastArraySerializerItem
 
 	/** Always the ClassDefaultObject */
 	UPROPERTY()
-	const UWeapon* WeaponType;
+	const UWeaponType* WeaponType;
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 CurrentClipAmmo;
-
+	
+	void PostReplicatedAdd(const struct FWeaponSpecContainer& InArraySerializer);
+	void PreReplicatedRemove(const struct FWeaponSpecContainer& InArraySerializer);
 	void PostReplicatedChange(const struct FWeaponSpecContainer& InArraySerializer);
 
 private:
@@ -88,6 +91,7 @@ struct FWeaponSpecContainer : public FFastArraySerializer
 
 	FWeaponSpecContainer(): Owner(nullptr) { return; }
 
+	UPROPERTY()
 	TArray<FWeaponSpec> Items;
 
 	/** Component that owns this list */

@@ -18,6 +18,11 @@ AGameMode_Game::AGameMode_Game()
 	PlayerRespawnCooldown = 5;
 }
 
+const FWeaponSpec AGameMode_Game::GenerateNewWeapon(TSubclassOf<UWeaponType> Weapon)
+{
+	return FWeaponSpec(Weapon.GetDefaultObject());
+}
+
 void AGameMode_Game::BeginPlay()
 {
 	Super::BeginPlay();
