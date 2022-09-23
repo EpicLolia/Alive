@@ -4,72 +4,14 @@
 #include "WeaponInventoryComponent.h"
 
 #include "AliveLogChannels.h"
-#include "GameFramework/PlayerState.h"
+#include "Weapon.h"
+#include "Character/AliveCharacter.h"
 #include "Net/UnrealNetwork.h"
 
 UWeaponInventoryComponent::UWeaponInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	SetIsReplicatedByDefault(true);
-
-	WeaponInventory.RegisterWithOwner(this);
-}
-
-void UWeaponInventoryComponent::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-TArray<FWeaponView> UWeaponInventoryComponent::GetAllWeapons() const
-{
-	TArray<FWeaponView> WeaponViews;
-	for (const auto& Weapon : WeaponInventory.Items)
-	{
-		WeaponViews.Emplace(Weapon.WeaponType, Weapon.GetWeaponSpecHandle());
-	}
-	return WeaponViews;
-}
-
-void UWeaponInventoryComponent::UpdateWeaponPerformance()
-{
-	OnCurrentWeaponPerformanceChanged.Broadcast(CurrentWeaponPerformance);
-}
-
-const FWeaponPerformance UWeaponInventoryComponent::GenerateWeaponPerformance(const UWeaponType* WeaponType) const
-{
-	// TODO: Get more information from player's custom appearance settings.
-	return FWeaponPerformance(WeaponType);
-}
-
-void UWeaponInventoryComponent::ServerChangeWeapon_Implementation(const FWeaponSpecHandle WeaponSpecHandle)
-{
-	ChangeWeapon(WeaponSpecHandle);
-}
-
-void UWeaponInventoryComponent::ChangeWeapon(const FWeaponSpecHandle& WeaponSpecHandle)
-{
-	const FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(WeaponSpecHandle);
-	check(WeaponSpec);
-	CurrentWeaponPerformance = GenerateWeaponPerformance(WeaponSpec->WeaponType);
-	CurrentWeapon = WeaponSpecHandle;
-	UpdateWeaponPerformance();
-}
-
-FWeaponSpec* UWeaponInventoryComponent::GetWeaponSpecFromHandle(const FWeaponSpecHandle& WeaponHandle)
-{
-	return const_cast<FWeaponSpec*>(static_cast<const UWeaponInventoryComponent*>(this)->GetWeaponSpecFromHandle(WeaponHandle));
-}
-
-const FWeaponSpec* UWeaponInventoryComponent::GetWeaponSpecFromHandle(const FWeaponSpecHandle& WeaponHandle) const
-{
-	for (const FWeaponSpec& WeaponSpec : WeaponInventory.Items)
-	{
-		if (WeaponSpec.GetWeaponSpecHandle() == WeaponHandle)
-		{
-			return &WeaponSpec;
-		}
-	}
-	return nullptr;
 }
 
 void UWeaponInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -83,14 +25,66 @@ void UWeaponInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 
 	DOREPLIFETIME_CONDITION(UWeaponInventoryComponent, CurrentWeaponPerformance, COND_SimulatedOnly)
 	DOREPLIFETIME_CONDITION(UWeaponInventoryComponent, WeaponInventory, COND_OwnerOnly)
-	
 }
 
-bool UWeaponInventoryComponent::HasSameType(const UWeaponType* Weapon) const
+void UWeaponInventoryComponent::UpdateWeaponPerformance()
 {
-	for (const auto& WeaponSpec : WeaponInventory.Items)
+	OnCurrentWeaponPerformanceChanged.Broadcast(CurrentWeaponPerformance);
+}
+
+void UWeaponInventoryComponent::ChangeCurrentWeaponAndCallServer(AWeapon* Weapon)
+{
+	if (CurrentWeapon)
 	{
-		if (WeaponSpec.WeaponType == Weapon)
+		CurrentWeapon->OnCurrentAmmoChanged.Unbind();
+	}
+	
+	Weapon->OnCurrentAmmoChanged.BindLambda([this]()
+	{
+		OnCurrentAmmoChanged.Broadcast(this->CurrentWeapon->GetCurrentAmmo());
+	});
+
+	ChangeWeapon(Weapon);
+	if (!GetOwner()->HasAuthority())
+	{
+		ServerChangeCurrentWeapon(Weapon);
+	}
+}
+
+void UWeaponInventoryComponent::ChangeWeapon(AWeapon* Weapon)
+{
+	CurrentWeapon = Weapon;
+	if (Weapon)
+	{
+		check(GetOwner() == Weapon->GetOwner())
+		CurrentWeaponPerformance = Weapon->GenerateWeaponPerformance();
+		UpdateWeaponPerformance();
+	}
+	else
+	{
+		CurrentWeaponPerformance = FWeaponPerformance();
+		UpdateWeaponPerformance();
+	}
+}
+
+void UWeaponInventoryComponent::OnRep_WeaponInventory(const TArray<AWeapon*>& OldInventory)
+{
+	if (OldInventory.Num() < WeaponInventory.Num())
+	{
+		OnWeaponInventoryAdd.Broadcast();
+	}
+}
+
+void UWeaponInventoryComponent::ServerChangeCurrentWeapon_Implementation(AWeapon* WeaponSpecHandle)
+{
+	ChangeWeapon(WeaponSpecHandle);
+}
+
+bool UWeaponInventoryComponent::HasSameType(const UWeaponType* WeaponType) const
+{
+	for (const auto& Weapon : WeaponInventory)
+	{
+		if (Weapon->GetWeaponType() == WeaponType)
 		{
 			return true;
 		}
@@ -98,13 +92,13 @@ bool UWeaponInventoryComponent::HasSameType(const UWeaponType* Weapon) const
 	return false;
 }
 
-void UWeaponInventoryComponent::AddWeaponToInventory(const FWeaponSpec& WeaponSpec)
+void UWeaponInventoryComponent::AddWeaponToInventory(AWeapon* Weapon)
 {
 	check(GetOwner()->HasAuthority());
-	check(!HasSameType(WeaponSpec.WeaponType));
+	check(!HasSameType(Weapon->GetWeaponType()));
 
-	WeaponInventory.Items.Emplace(WeaponSpec);
-	WeaponInventory.MarkItemDirty(WeaponInventory.Items.Last());
+	WeaponInventory.Emplace(Weapon);
+	Weapon->AddTo(Cast<AAliveCharacter>(GetOwner()));
 	if (Cast<APawn>(GetOwner()) && Cast<APawn>(GetOwner())->IsLocallyControlled())
 	{
 		// If server is owner.
@@ -112,73 +106,40 @@ void UWeaponInventoryComponent::AddWeaponToInventory(const FWeaponSpec& WeaponSp
 	}
 }
 
-void UWeaponInventoryComponent::ChangeWeaponAndCallServer(const FWeaponSpecHandle& WeaponSpecHandle)
+void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(AWeapon* Weapon)
 {
-	ChangeWeapon(WeaponSpecHandle);
-	if (!GetOwner()->HasAuthority())
+	check(Weapon->GetOwner() == GetOwner());
+	
+	if (CurrentWeapon == Weapon)
 	{
-		ServerChangeWeapon(WeaponSpecHandle);
-	}
-}
-
-void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(const FWeaponSpecHandle& WeaponSpecHandle)
-{
-	if (CurrentWeapon == WeaponSpecHandle)
-	{
-		if (WeaponInventory.Items.Num() != 0)
+		if (WeaponInventory.Num())
 		{
-			ChangeWeaponAndCallServer(WeaponInventory.Items[0].GetWeaponSpecHandle());
+			ChangeCurrentWeaponAndCallServer(WeaponInventory.Last());
+		}
+		else
+		{
+			ChangeCurrentWeaponAndCallServer();
 		}
 	}
+	// Just in case.
+	Weapon->OnCurrentAmmoChanged.Unbind();
 
-	if (const FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(WeaponSpecHandle))
+	OnWeaponInventoryRemove.Broadcast();
+
+	if(!GetOwner()->HasAuthority())
 	{
-		if (!GetOwner()->HasAuthority())
-		{
-			// Prediction
-			WeaponInventory.Items.Remove(*WeaponSpec);
-			WeaponInventory.MarkArrayDirty();
-		}
-		ServerRemoveWeaponFromInventory(WeaponSpecHandle);
+		// Predicted Remove
+		WeaponInventory.RemoveSingleSwap(Weapon);
 	}
+	
+	ServerRemoveWeaponFromInventory(Weapon);
 }
 
-void UWeaponInventoryComponent::ServerRemoveWeaponFromInventory_Implementation(const FWeaponSpecHandle WeaponSpecHandle)
+void UWeaponInventoryComponent::ServerRemoveWeaponFromInventory_Implementation(AWeapon* Weapon)
 {
-	if (const FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(WeaponSpecHandle))
-	{
-		WeaponInventory.Items.Remove(*WeaponSpec);
-		WeaponInventory.MarkArrayDirty();
-	}
-	// TODO: Spawn pickup
-}
-
-bool UWeaponInventoryComponent::CheckCurrentWeaponCost() const
-{
-	if (!CurrentWeapon.IsValid())
-	{
-		// No cost if no weapon in hand.
-		return true;
-	}
-
-	if (const FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(CurrentWeapon))
-	{
-		return WeaponSpec->CurrentClipAmmo > 0;
-	}
-
-	return false;
-}
-
-void UWeaponInventoryComponent::ApplyCurrentWeaponCost()
-{
-	if (CurrentWeapon.IsValid())
-	{
-		if (FWeaponSpec* WeaponSpec = GetWeaponSpecFromHandle(CurrentWeapon))
-		{
-			--WeaponSpec->CurrentClipAmmo;
-			//GetWorld()->GetTimerManager().SetTimer()
-			WeaponInventory.MarkItemDirty(*WeaponSpec);
-			//OnCurrentAmmoChanged.Broadcast(WeaponSpec->CurrentClipAmmo);
-		}
-	}
+	Weapon->DiscardFromOwner();
+	WeaponInventory.RemoveSingleSwap(Weapon);
+	
+	// TODO: Spawn Pickup
+	Weapon->SetLifeSpan(0.1f);
 }

@@ -24,30 +24,33 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
 
+	const UWeaponType* GetWeaponType() const { return WeaponType; }
 	void SetWeaponType(TSubclassOf<UWeaponType> WeaponTypeClass);
-	
+
+	// Only called on the server.
 	void AddTo(AAliveCharacter* Character);
 	void DiscardFromOwner();
 
-	FWeaponPerformance GenerateWeaponPerformance()const;
-	
+	FWeaponPerformance GenerateWeaponPerformance() const;
+
+	int32 GetCurrentAmmo() const { return CurrentAmmo; }
 	/** Ability can change ammo by this. */
 	UFUNCTION(BlueprintCallable)
 	void SetCurrentAmmo(int32 Ammo);
-	
-	/** Can be bound in the inventory component. */
+
+	/** Can be bound in the inventory component. Useful for the owner. */
 	FSimpleDelegate OnCurrentAmmoChanged;
-	
+
 protected:
 	/** Always the ClassDefaultObject */
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	const UWeaponType* WeaponType;
-	
+
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentAmmo, BlueprintReadOnly)
 	int32 CurrentAmmo;
 	UFUNCTION()
 	void OnRep_CurrentAmmo(int32 OldAmmo);
-	
+
 private:
 	// Record the skills given by this weapon. Only useful on the server because we should only add/remove with authority.
 	TArray<FGameplayAbilitySpecHandle> AbilitySpecHandles;
@@ -57,4 +60,3 @@ private:
 	void GrantAbilitiesToOwner();
 	void RemoveAbilitiesFromOwner();
 };
-

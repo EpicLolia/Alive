@@ -26,11 +26,10 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 
 void AWeapon::AddTo(AAliveCharacter* Character)
 {
-	check(Character);
-	SetOwner(Character);
 	// Will not add the actor to the weapon array here,
 	// because the owner may not have the inventory component, like monster.
-
+	check(Character);
+	SetOwner(Character);
 	GrantAbilitiesToOwner();
 }
 
@@ -42,15 +41,15 @@ void AWeapon::DiscardFromOwner()
 
 FWeaponPerformance AWeapon::GenerateWeaponPerformance() const
 {
-	if (AAlivePlayerState* PS = Cast<AAlivePlayerState>(GetOwnerAsAliveCharacter()->GetPlayerState()))
+	if (GetOwnerAsAliveCharacter())
 	{
-		// TODO: Custom weapon performance
-		return FWeaponPerformance(WeaponType);
+		if (AAlivePlayerState* PS = Cast<AAlivePlayerState>(GetOwnerAsAliveCharacter()->GetPlayerState()))
+		{
+			// TODO: Custom weapon performance
+			return FWeaponPerformance(WeaponType);
+		}
 	}
-	else
-	{
-		return FWeaponPerformance(WeaponType);
-	}
+	return FWeaponPerformance(WeaponType);
 }
 
 void AWeapon::SetCurrentAmmo(int32 Ammo)
