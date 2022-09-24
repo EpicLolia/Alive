@@ -23,6 +23,8 @@ APickupWeapon::APickupWeapon()
 	RootComponent->SetupAttachment(WeaponMesh);
 	RootComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	RootComponent = WeaponMesh;
+
+	InitialLifeSpan = 20.0f;
 }
 
 void APickupWeapon::BeginPlay()
@@ -31,8 +33,20 @@ void APickupWeapon::BeginPlay()
 
 	if (WeaponType && HasAuthority())
 	{
-		InitWeapon(AWeapon::NewWeapon(this, WeaponType, GetTransform()));
+		InitWeaponPickup(AWeapon::NewWeapon(this, WeaponType, GetTransform()));
 	}
+}
+
+void APickupWeapon::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if(Weapon)
+	{
+		check(!Weapon->GetOwner());
+		Weapon->SetLifeSpan(0.1f);
+		Weapon = nullptr;
+	}
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 void APickupWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -52,6 +66,7 @@ void APickupWeapon::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTr
 bool APickupWeapon::CanPickUp(const AAliveCharacter* Character) const
 {
 	return Super::CanPickUp(Character)
+		&& Weapon
 		&& Cast<APlayerCharacter>(Character)
 		&& GetGameTimeSinceCreation() > 0.5f; // Should wait weapon pointer to be replicated.
 }
@@ -66,15 +81,18 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 	Cast<APlayerCharacter>(Character)->GetWeaponInventoryComponent()->AddWeaponToInventory(Weapon);
 	
 	GetWorld()->GetTimerManager().ClearTimer(UpdateTransformTimerHandle);
+
+	Weapon = nullptr;
 }
 
-void APickupWeapon::InitWeapon(AWeapon* InitWeapon)
+void APickupWeapon::InitWeaponPickup(AWeapon* InitWeapon, float LifeSpan)
 {
 	check(!Weapon);
 	check(HasAuthority());
 	check(InitWeapon);
 	Weapon = InitWeapon;
 
+	SetLifeSpan(LifeSpan);
 	MulticastStartSimulatePhysics(Weapon->GetWeaponType());
 	GetWorld()->GetTimerManager().SetTimer(UpdateTransformTimerHandle, this, &APickupWeapon::UpdateWeaponTransformAndVelocity,
 	                                       GetWorldSettings()->GetEffectiveTimeDilation()/* 1s */, true, 0.1f);

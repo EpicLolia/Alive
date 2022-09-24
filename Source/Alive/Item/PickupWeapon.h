@@ -16,15 +16,17 @@ class ALIVE_API APickupWeapon : public APickup
 public:
 	APickupWeapon();
 
+	void InitWeaponPickup(class AWeapon* InitWeapon, float LifeSpan = 20.0f);
+	
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 	virtual bool CanPickUp(const AAliveCharacter* Character) const override;
 	virtual void GivePickupTo(AAliveCharacter* Character) override;
 
-	void InitWeapon(class AWeapon* InitWeapon);
 
 	UPROPERTY(EditDefaultsOnly, Category = "Alive|Pickup")
 	TSubclassOf<UWeaponType> WeaponType;
@@ -34,12 +36,12 @@ protected:
 	class AWeapon* Weapon;
 
 private:
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "WeaponMesh", meta=(AllowPrivateAccess = true))
+	UPROPERTY(BlueprintReadOnly, Category = "WeaponMesh", meta=(AllowPrivateAccess = true))
 	USkeletalMeshComponent* WeaponMesh;
 
 	void UpdateWeaponTransformAndVelocity();
 
-	UPROPERTY(ReplicatedUsing=OnRep_CurrentTransformWithVelocity)
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentTransformWithVelocity)
 	FTransformWithVelocity CurrentTransformWithVelocity;
 	UFUNCTION()
 	void OnRep_CurrentTransformWithVelocity();

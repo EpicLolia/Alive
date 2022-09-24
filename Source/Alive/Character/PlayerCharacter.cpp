@@ -143,6 +143,8 @@ void APlayerCharacter::OnDeath(AActor* DamageInstigator)
 {
 	Super::OnDeath(DamageInstigator);
 
+	// Caution! Don't Allow to change weapon after death.
+	InventoryComponent->ChangeCurrentWeaponAndCallServer();
 	if (HasAuthority())
 	{
 		AAlivePlayerState* PS = GetPlayerState<AAlivePlayerState>();

@@ -6,6 +6,7 @@
 #include "AliveLogChannels.h"
 #include "Weapon.h"
 #include "Character/AliveCharacter.h"
+#include "Item/PickupWeapon.h"
 #include "Net/UnrealNetwork.h"
 
 UWeaponInventoryComponent::UWeaponInventoryComponent()
@@ -34,20 +35,25 @@ void UWeaponInventoryComponent::UpdateWeaponPerformance()
 
 void UWeaponInventoryComponent::ChangeCurrentWeaponAndCallServer(AWeapon* Weapon)
 {
-	if (CurrentWeapon)
+	if (Weapon != CurrentWeapon)
 	{
-		CurrentWeapon->OnCurrentAmmoChanged.Unbind();
-	}
-	
-	Weapon->OnCurrentAmmoChanged.BindLambda([this]()
-	{
-		OnCurrentAmmoChanged.Broadcast(this->CurrentWeapon->GetCurrentAmmo());
-	});
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->OnCurrentAmmoChanged.Unbind();
+		}
+		if (Weapon)
+		{
+			Weapon->OnCurrentAmmoChanged.BindLambda([this]()
+			{
+				OnCurrentAmmoChanged.Broadcast(this->CurrentWeapon->GetCurrentAmmo());
+			});
+		}
 
-	ChangeWeapon(Weapon);
-	if (!GetOwner()->HasAuthority())
-	{
-		ServerChangeCurrentWeapon(Weapon);
+		ChangeWeapon(Weapon);
+		if (!GetOwner()->HasAuthority())
+		{
+			ServerChangeCurrentWeapon(Weapon);
+		}
 	}
 }
 
@@ -109,7 +115,7 @@ void UWeaponInventoryComponent::AddWeaponToInventory(AWeapon* Weapon)
 void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(AWeapon* Weapon)
 {
 	check(Weapon->GetOwner() == GetOwner());
-	
+
 	if (CurrentWeapon == Weapon)
 	{
 		if (WeaponInventory.Num())
@@ -126,22 +132,23 @@ void UWeaponInventoryComponent::RemoveWeaponFromInventoryAndCallServer(AWeapon* 
 
 	OnWeaponInventoryRemove.Broadcast();
 
-	if(!GetOwner()->HasAuthority())
+	if (!GetOwner()->HasAuthority())
 	{
 		// Predicted Remove
 		WeaponInventory.RemoveSingleSwap(Weapon);
 	}
-	
+
 	ServerRemoveWeaponFromInventory(Weapon);
 }
 
 void UWeaponInventoryComponent::RemoveAllWeapons()
 {
-	for(const auto& Weapon: WeaponInventory)
+	check(GetOwner()->HasAuthority());
+	for (const auto& Weapon : WeaponInventory)
 	{
 		Weapon->DiscardFromOwner();
-		// TODO: Spawn Pickup
-		Weapon->SetLifeSpan(0.1f);
+		APickupWeapon* NewPickupWeapon = GetWorld()->SpawnActor<APickupWeapon>(APickupWeapon::StaticClass(), GetOwner()->GetTransform());
+		NewPickupWeapon->InitWeaponPickup(Weapon);
 	}
 	WeaponInventory.Empty();
 }
@@ -150,7 +157,7 @@ void UWeaponInventoryComponent::ServerRemoveWeaponFromInventory_Implementation(A
 {
 	Weapon->DiscardFromOwner();
 	WeaponInventory.RemoveSingleSwap(Weapon);
-	
-	// TODO: Spawn Pickup
-	Weapon->SetLifeSpan(0.1f);
+
+	APickupWeapon* NewPickupWeapon = GetWorld()->SpawnActor<APickupWeapon>(APickupWeapon::StaticClass(), GetOwner()->GetTransform());
+	NewPickupWeapon->InitWeaponPickup(Weapon);
 }
