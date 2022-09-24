@@ -19,9 +19,11 @@ class ALIVE_API APickup : public AActor
 public:
 	APickup();
 
+	class USphereComponent* GetCollisionComponent() const { return CollisionComp; }
+
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
 	void TryToPickItUp(AAliveCharacter* Character);
-	
+
 	// Only called on the server. Used to notify the pickup generator.
 	FSimpleDelegate OnPickUpOrTimeOut;
 
@@ -33,14 +35,14 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnPickUpEvent", Category="Alive|Pickup")
 	void K2_OnPickUpEvent();
-	
+
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Pickup")
 	TArray<TSubclassOf<class UGameplayEffect>> EffectClasses;
 
 private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Pickup", meta=(AllowPrivateAccess = true))
 	class USphereComponent* CollisionComp;
-	
+
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastPickUpEvent();

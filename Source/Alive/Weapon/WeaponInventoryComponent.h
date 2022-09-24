@@ -39,7 +39,9 @@ public:
 	void RemoveAllWeapons();
 	
 	const TArray<AWeapon*>& GetWeaponInventory() const { return WeaponInventory; };
-
+	UFUNCTION(BlueprintCallable)
+	AWeapon* GetCurrentWeapon()const {return CurrentWeapon;}
+	
 	/** Only bound in the owner's actor. Used for UI. */
 	UPROPERTY(BlueprintAssignable)
 	FAmmoChangedDelegate OnCurrentAmmoChanged;

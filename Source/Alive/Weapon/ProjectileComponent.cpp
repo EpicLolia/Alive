@@ -7,6 +7,7 @@
 #include "Alive.h"
 #include "Character/AliveCharacter.h"
 #include "DrawDebugHelpers.h"
+#include "Weapon.h"
 #include "Net/UnrealNetwork.h"
 
 UProjectileComponent::UProjectileComponent()
@@ -14,16 +15,20 @@ UProjectileComponent::UProjectileComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
 
-	UpdateFrequency = 10;
-	bDrawDebug = false;
-	ProjectileType = EProjectileType::VelocityAndGravity;
-	Range = 1200.0f;
-	Velocity = 600.0f;
-	Gravity = 9.8f;
-
 	NetworkDelayTolerance = 200.0f;
 	NetworkFluctuationTolerance = 200.0f;
 	TargetMaximumVelocity = 6.0f;
+}
+
+void UProjectileComponent::InitProjectileComponent()
+{
+	check(GetWeaponType());
+	UpdateInterval = 1.0f / static_cast<float>(GetWeaponType()->UpdateFrequency);
+	ProjectileLifespan = GetWeaponType()->Range / GetWeaponType()->Velocity;
+	CalculateWaitHitResultFrames();
+
+	GetOwner()->GetWorldTimerManager().SetTimer(
+		ProjectileTickTimerHandle, this, &UProjectileComponent::ProjectileTick, UpdateInterval, true);
 }
 
 void UProjectileComponent::GenerateProjectileInstance(uint8 ProjrctileID, const FVector& Location, const FVector& Direction)
@@ -34,31 +39,15 @@ void UProjectileComponent::GenerateProjectileInstance(uint8 ProjrctileID, const 
 void UProjectileComponent::GenerateProjectileHandle(uint8 ProjectileID, const FGameplayEffectSpecHandle& HitEffectSpecHandle,
                                                     int32 BulletsPerCartridge)
 {
-	check(OwningWeapon->HasAuthority());
+	check(GetOwner()->HasAuthority());
 	ServerProjectileHandles.Emplace(ProjectileID, HitEffectSpecHandle, BulletsPerCartridge);
-}
-
-void UProjectileComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// Owner must be an AliveWeapon
-	OwningWeapon = Cast<AAliveWeapon>(GetOwner());
-	check(OwningWeapon);
-
-	UpdateInterval = 1.0f / static_cast<float>(UpdateFrequency);
-	ProjectileLifespan = Range / Velocity;
-	CalculateWaitHitResultFrames();
-
-	OwningWeapon->GetWorldTimerManager().SetTimer(
-		ProjectileTickTimerHandle, this, &UProjectileComponent::ProjectileTick, UpdateInterval, true);
 }
 
 void UProjectileComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (ProjectileTickTimerHandle.IsValid())
 	{
-		OwningWeapon->GetWorldTimerManager().ClearTimer(ProjectileTickTimerHandle);
+		GetOwner()->GetWorldTimerManager().ClearTimer(ProjectileTickTimerHandle);
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -78,14 +67,14 @@ void UProjectileComponent::ProjectileTick()
 	{
 		return Projectile.bPendingKill;
 	});
-	
-	if (OwningWeapon->HasAuthority())
+
+	if (GetOwner()->HasAuthority())
 	{
 		for (auto& ProjectileHandle : ServerProjectileHandles)
 		{
 			++ProjectileHandle.ElapsedFrames;
 			// When the server wait times out
-			if (ProjectileHandle.ElapsedFrames >= ProjectileLifespan * UpdateFrequency + ServerWaitHitResultFrames)
+			if (ProjectileHandle.ElapsedFrames >= ProjectileLifespan * GetWeaponType()->UpdateFrequency + ServerWaitHitResultFrames)
 			{
 				ProjectileHandle.bPendingKill = true;
 			}
@@ -101,7 +90,7 @@ void UProjectileComponent::ProjectileTick()
 void UProjectileComponent::TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults, const FVector Start, const FVector End) const
 {
 	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(OwningWeapon->GetOwningCharacter());
+	ActorsToIgnore.Add(GetOwnerAsWeapon()->GetOwner());
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ATraceProjectile), false);
 	Params.bReturnPhysicalMaterial = true;
@@ -111,9 +100,9 @@ void UProjectileComponent::TraceAndDrawDebug(OUT TArray<FHitResult>& HitResults,
 	GetWorld()->LineTraceMultiByChannel(HitResults, Start, End, ECC_Projectile, Params, FCollisionResponseParams());
 
 #ifdef ENABLE_DRAW_DEBUG
-	if (bDrawDebug)
+	if (GetWeaponType()->bDrawWeaponTrace)
 	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 3.0f, 0, 5);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 3.0f, 0, 2);
 	}
 #endif
 }
@@ -127,7 +116,7 @@ void UProjectileComponent::ProcessHitResults(OUT FProjectileInstance& Projectile
 			ServerCheckHitResult(Projectile.ProjectileID, ShrinkHitResult(HitResult));
 			Projectile.bPendingKill = true;
 
-			OnProjectileHit.Broadcast(HitResult);
+			GetWeaponType()->K2_OnProjectileHit(HitResult);
 
 			break;
 		}
@@ -160,18 +149,15 @@ void UProjectileComponent::UpdateProjectileOneFrame(OUT TArray<FHitResult>& HitR
 
 	// Calculate current state
 	Projectile.ElapsedTime += RealUpdateInterval;
-	switch (ProjectileType)
+
+	if (GetWeaponType()->bVelocity)
 	{
-	case EProjectileType::Velocity:
-		Projectile.CurrentLocation += Projectile.InitDirection * 100.0f * Velocity * RealUpdateInterval;
-		break;
-	case EProjectileType::VelocityAndGravity:
-		Projectile.CurrentLocation += Projectile.InitDirection * 100.0f * Velocity * RealUpdateInterval;
-		Projectile.CurrentLocation.Z -= 0.5f * 100.0f * Gravity * (FMath::Square(Projectile.ElapsedTime) - FMath::Square(LastElapsedTime));
-		break;
-	default:
-		check(false);
-		break;
+		Projectile.CurrentLocation += Projectile.InitDirection * 100.0f * GetWeaponType()->Velocity * RealUpdateInterval;
+		if (GetWeaponType()->bGravity)
+		{
+			Projectile.CurrentLocation.Z -= 0.5f * 100.0f * GetWeaponType()->Gravity * (FMath::Square(Projectile.ElapsedTime) -
+				FMath::Square(LastElapsedTime));
+		}
 	}
 
 	TraceAndDrawDebug(HitResults, PreLocation, Projectile.CurrentLocation);
@@ -211,9 +197,10 @@ void UProjectileComponent::ServerCheckHitResult_Implementation(uint8 ProjectileI
 void UProjectileComponent::MulticastProjectileHit_Implementation(FHitResult HitResult)
 {
 	// TODO: There is a bug here. Ths way can not work after the owner dead. The Causer may see hit effects twice.
-	if (!OwningWeapon->GetOwningCharacter() || !OwningWeapon->GetOwningCharacter()->IsLocallyControlled())
+	if (!Cast<AAliveCharacter>(GetOwnerAsWeapon()->GetOwner())
+		|| !Cast<AAliveCharacter>(GetOwnerAsWeapon()->GetOwner())->IsLocallyControlled())
 	{
-		OnProjectileHit.Broadcast(HitResult);
+		GetWeaponType()->K2_OnProjectileHit(HitResult);
 	}
 }
 
@@ -223,14 +210,14 @@ void UProjectileComponent::CalculateWaitHitResultFrames()
 	const float PositionError = NetworkDelayTolerance * TargetMaximumVelocity; // mm
 
 	// An extreme situation where the object is dashing toward you.
-	const float ServerWaitTime = (PositionError / (Velocity + TargetMaximumVelocity) + NetworkFluctuationTolerance) * 0.001f; // s
+	const float ServerWaitTime = (PositionError / (GetWeaponType()->Velocity + TargetMaximumVelocity) + NetworkFluctuationTolerance) * 0.001f; // s
 	ServerWaitHitResultFrames = static_cast<int32>(ServerWaitTime / UpdateInterval + (1 - KINDA_SMALL_NUMBER));
 
 	// An extreme situation where the object is running away from you.
 	// Check if the projectile has a suitable velocity to hit the target
-	if (Velocity > 1.2f * TargetMaximumVelocity)
+	if (GetWeaponType()->Velocity > 1.2f * TargetMaximumVelocity)
 	{
-		const float ClientWaitTime = (PositionError / (Velocity - TargetMaximumVelocity) + NetworkFluctuationTolerance) * 0.001f; // s
+		const float ClientWaitTime = (PositionError / (GetWeaponType()->Velocity - TargetMaximumVelocity) + NetworkFluctuationTolerance) * 0.001f; // s
 		ClientWaitHitResultFrames = static_cast<int32>(ClientWaitTime / UpdateInterval + (1 - KINDA_SMALL_NUMBER));
 	}
 	else
@@ -238,4 +225,14 @@ void UProjectileComponent::CalculateWaitHitResultFrames()
 		const float ClientWaitTime = (5.0f * NetworkDelayTolerance + NetworkFluctuationTolerance) * 0.001f; // s
 		ClientWaitHitResultFrames = static_cast<int32>(ClientWaitTime / UpdateInterval + (1 - KINDA_SMALL_NUMBER));
 	}
+}
+
+AWeapon* UProjectileComponent::GetOwnerAsWeapon() const
+{
+	return Cast<AWeapon>(GetOwner());
+}
+
+const UWeaponType* UProjectileComponent::GetWeaponType() const
+{
+	return GetOwnerAsWeapon()->GetWeaponType();
 }

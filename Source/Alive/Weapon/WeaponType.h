@@ -58,10 +58,10 @@ class ALIVE_API UWeaponType : public UObject
 protected:
 	UWeaponType(){}
 
-	UFUNCTION(BlueprintImplementableEvent,DisplayName = "OnProjectileHit")
-	void K2_OnProjectileHit(const FHitResult& HitResult);
-	
 public:
+	UFUNCTION(BlueprintImplementableEvent,DisplayName = "OnProjectileHit")
+	void K2_OnProjectileHit(const FHitResult& HitResult) const;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability")
 	TArray<TSubclassOf<UGameplayAbility>> AbilitiesGrantedToOwner;
 
@@ -81,13 +81,13 @@ public:
 	FGameplayTagContainer FireModes;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Spread")
-	float MinSpreadAngle;
+	float MinSpreadAngle = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Spread")
-	float SpreadAngleIncreaseRate;
+	float SpreadAngleIncreaseRate = 0.4;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Spread")
-	float MaxSpreadAngle;
+	float MaxSpreadAngle = 15.0f;
 
 	/**
 	 * This determines whether the projectile will spawn projectile actors.
@@ -96,6 +96,13 @@ public:
 	 */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile")
 	bool bEntity = false;
+	/**
+	 * Use a logical tick rate. Ensure that the client and server have the same projectile simulation results.
+	 * MaxFrequency is decided by tick rate.
+	 */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
+		meta = (EditCondition = "!bEntity", EditConditionHides, ClampMin = 1, ClampMax = 60))
+	int32 UpdateFrequency = 10;
 	/** Do not work on projectile actor. Units: m */
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Projectile",
 		meta = (EditCondition = "!bEntity", EditConditionHides, ClampMin = 0.5f, ClampMax = 3000.0f))
@@ -139,7 +146,10 @@ public:
 	// Relative Transform of weapon Mesh when equipped
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance")
 	FTransform WeaponMeshRelativeTransform;
-
+	// Used to find the openfire location
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance")
+	FName FirePointSocket;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance|Animation")
 	UAnimMontage* EquipMontage;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Performance|Animation")
@@ -155,4 +165,10 @@ public:
 	 */
 
 	/** UI */
+	
+	/*
+	 * Debug
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Debug")
+	bool bDrawWeaponTrace = false;
 };

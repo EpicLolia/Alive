@@ -7,19 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "ProjectileComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FProjectileHitDelegate,const FHitResult&, HitResult);
-
-UENUM(BlueprintType)
-enum class EProjectileType : uint8
-{
-	/** return the hit result instantly while Firing. */
-	Hitscan,
-	/** Consider the velocity of the Projectile. */
-	Velocity,
-	/** Consider both the velocity and gravity of the Projectile . */
-	VelocityAndGravity
-};
-
+class AWeapon;
 /**
  * Provides functional Projectiles based on ray detection.
  * Client generates hit result, than Server checks the hit result sent from client and apply damage.
@@ -33,41 +21,14 @@ class ALIVE_API UProjectileComponent : public UActorComponent
 public:
 	UProjectileComponent();
 
+	void InitProjectileComponent();
+	
 	void GenerateProjectileInstance(uint8 ProjectileID, const FVector& Location, const FVector& Direction);
 	// Should only be called on the server. 
 	void GenerateProjectileHandle(uint8 ProjectileID, const FGameplayEffectSpecHandle& HitEffectSpecHandle, int32 BulletsPerCartridge = 1);
 
 protected:
-	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-private:
-	UPROPERTY()
-	class AAliveWeapon* OwningWeapon;
-
-public:
-	float GetRange() const { return Range; }
-
-protected:
-	/**
-	 * Use a logical tick rate. Ensure that the client and server have the same projectile simulation results.
-	 * MaxFrequency is decided by tick rate.
-	 */
-	UPROPERTY(EditDefaultsOnly, Category = "Alive", meta = (ClampMin = 1, ClampMax = 60))
-	int32 UpdateFrequency;
-	UPROPERTY(EditDefaultsOnly, Category = "Alive")
-	bool bDrawDebug;
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Projectile")
-	EProjectileType ProjectileType;
-	/** How far the projectile can go. (m) */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Projectile", meta = (ClampMin = 1.0f, ClampMax = 3000.0f))
-	float Range;
-	/** Will not work while the ProjectileType is hitscan. (m/s) */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Projectile", meta = (ClampMin = 1.0f, ClampMax = 1200.0f))
-	float Velocity;
-	/** Only work while ProjectileType is ProjectileAndGravity. (m/s^2) */
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Alive|Projectile", meta = (ClampMin = 0.1f, ClampMax = 100.0f))
-	float Gravity;
 
 	/** The maximum RTT allowed by the server. Used to calculate WaitHitResultFrames (ms) */
 	UPROPERTY(EditDefaultsOnly, Category = "Alive|Network", meta = (ClampMin = 10.0f, ClampMax = 1000.0f))
@@ -79,8 +40,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Alive|Network", meta = (ClampMin = 1.0, ClampMax = 20.0f))
 	float TargetMaximumVelocity;
 
-	UPROPERTY(BlueprintAssignable)
-	FProjectileHitDelegate OnProjectileHit;
 private:
 	/**
 	 * Only Useful on the server. Apply damage on the server while hitting a valid target.
@@ -153,4 +112,7 @@ private:
 	int32 ClientWaitHitResultFrames;
 	// Called in BeginPlay after initializing other data, like UpdateInterval.
 	void CalculateWaitHitResultFrames();
+
+	AWeapon* GetOwnerAsWeapon()const;
+	const class UWeaponType* GetWeaponType()const;
 };

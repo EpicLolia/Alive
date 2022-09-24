@@ -3,6 +3,7 @@
 #include "Weapon.h"
 
 #include "AbilitySystemComponent.h"
+#include "ProjectileComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "Character/AliveCharacter.h"
 #include "Net/UnrealNetwork.h"
@@ -13,7 +14,9 @@ AWeapon::AWeapon()
 	PrimaryActorTick.bCanEverTick = true;
 	SetReplicates(true);
 	// Caution! Only replicated to owner. 
-	bOnlyRelevantToOwner = true;
+	//bOnlyRelevantToOwner = true;
+
+	ProjectileComponent = CreateDefaultSubobject<UProjectileComponent>(FName("ProjectileComponent"));
 }
 
 AWeapon* AWeapon::NewWeapon(const AActor* GenerateInstigator, TSubclassOf<UWeaponType> WeaponTypeClass, const FTransform& Transform)
@@ -48,6 +51,12 @@ void AWeapon::DiscardFromOwner()
 	RemoveAbilitiesFromOwner();
 }
 
+FVector AWeapon::GetFirePointWorldLocation() const
+{
+	// TODO: 这块的逻辑不对，还是在weapon里维护一个mesh吧，把visibility作为变量同步，这样就可以解决断线重连的问题
+	return Cast<APlayerCharacter>(GetOwnerAsAliveCharacter())->GetWeaponMeshComponent()->GetSocketLocation(GetWeaponType()->FirePointSocket);
+}
+
 FWeaponPerformance AWeapon::GenerateWeaponPerformance() const
 {
 	if (GetOwnerAsAliveCharacter())
@@ -76,6 +85,12 @@ void AWeapon::SetWeaponType(TSubclassOf<UWeaponType> WeaponTypeClass)
 {
 	WeaponType = WeaponTypeClass.GetDefaultObject();
 	CurrentAmmo = WeaponType->MaxClipAmmo;
+	OnRep_WeaponType();
+}
+
+void AWeapon::OnRep_WeaponType()
+{
+	ProjectileComponent->InitProjectileComponent();
 }
 
 void AWeapon::OnRep_CurrentAmmo(int32 OldAmmo)

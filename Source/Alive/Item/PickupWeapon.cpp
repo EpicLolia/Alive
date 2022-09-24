@@ -5,6 +5,7 @@
 #include "AliveLogChannels.h"
 #include "Character/AliveCharacter.h"
 #include "Character/PlayerCharacter.h"
+#include "Components/SphereComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/AliveWeapon.h"
 #include "Weapon/Weapon.h"
@@ -20,10 +21,8 @@ APickupWeapon::APickupWeapon()
 	WeaponMesh->CastShadow = true;
 	WeaponMesh->SetVisibility(true, true);
 	WeaponMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
-	RootComponent->SetupAttachment(WeaponMesh);
-	RootComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	RootComponent = WeaponMesh;
-
+	
 	InitialLifeSpan = 20.0f;
 }
 
@@ -31,6 +30,9 @@ void APickupWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
+	GetCollisionComponent()->AttachToComponent(WeaponMesh,FAttachmentTransformRules::KeepRelativeTransform);
+	GetCollisionComponent()->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	
 	if (WeaponType && HasAuthority())
 	{
 		InitWeaponPickup(AWeapon::NewWeapon(this, WeaponType, GetTransform()));
@@ -39,13 +41,16 @@ void APickupWeapon::BeginPlay()
 
 void APickupWeapon::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if(Weapon)
+	if (HasAuthority())
 	{
-		check(!Weapon->GetOwner());
-		Weapon->SetLifeSpan(0.1f);
-		Weapon = nullptr;
+		if (Weapon)
+		{
+			check(!Weapon->GetOwner());
+			Weapon->SetLifeSpan(0.1f);
+			Weapon = nullptr;
+		}
+		OnPickUpOrTimeOut.ExecuteIfBound();
 	}
-	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -68,6 +73,7 @@ bool APickupWeapon::CanPickUp(const AAliveCharacter* Character) const
 	return Super::CanPickUp(Character)
 		&& Weapon
 		&& Cast<APlayerCharacter>(Character)
+		&& !Cast<APlayerCharacter>(Character)->GetWeaponInventoryComponent()->HasSameType(Weapon->GetWeaponType())
 		&& GetGameTimeSinceCreation() > 0.5f; // Should wait weapon pointer to be replicated.
 }
 
@@ -79,20 +85,19 @@ void APickupWeapon::GivePickupTo(AAliveCharacter* Character)
 
 	this->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	Cast<APlayerCharacter>(Character)->GetWeaponInventoryComponent()->AddWeaponToInventory(Weapon);
-	
+
 	GetWorld()->GetTimerManager().ClearTimer(UpdateTransformTimerHandle);
 
 	Weapon = nullptr;
 }
 
-void APickupWeapon::InitWeaponPickup(AWeapon* InitWeapon, float LifeSpan)
+void APickupWeapon::InitWeaponPickup(AWeapon* InitWeapon)
 {
 	check(!Weapon);
 	check(HasAuthority());
 	check(InitWeapon);
 	Weapon = InitWeapon;
 
-	SetLifeSpan(LifeSpan);
 	MulticastStartSimulatePhysics(Weapon->GetWeaponType());
 	GetWorld()->GetTimerManager().SetTimer(UpdateTransformTimerHandle, this, &APickupWeapon::UpdateWeaponTransformAndVelocity,
 	                                       GetWorldSettings()->GetEffectiveTimeDilation()/* 1s */, true, 0.1f);

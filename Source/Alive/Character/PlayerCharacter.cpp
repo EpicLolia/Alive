@@ -55,6 +55,11 @@ APlayerCharacter::APlayerCharacter(const class FObjectInitializer& ObjectInitial
 	InventoryComponent = CreateDefaultSubobject<UWeaponInventoryComponent>(TEXT("InventoryComponent"));
 	InventoryComponent->bAutoActivate = true;
 
+	WeaponMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMeshComponent"));
+	WeaponMeshComponent->SetupAttachment(GetMesh());
+	WeaponMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+	WeaponMeshComponent->bAutoActivate = true;
+
 	bHasBoundAbilityInput = false;
 }
 
@@ -152,7 +157,10 @@ void APlayerCharacter::OnDeath(AActor* DamageInstigator)
 		{
 			PS->AddDeathCount();
 			// TODO: Maybe the Owner is AI!!
-			PS->GetAlivePlayerController()->RespawnPlayerCharacterAfterCooldown();
+			if (PS->GetAlivePlayerController())
+			{
+				PS->GetAlivePlayerController()->RespawnPlayerCharacterAfterCooldown();
+			}
 		}
 		APlayerCharacter* InstigatorCharacter = Cast<APlayerCharacter>(DamageInstigator);
 		if (InstigatorCharacter)

@@ -16,7 +16,7 @@ class ALIVE_API APickupWeapon : public APickup
 public:
 	APickupWeapon();
 
-	void InitWeaponPickup(class AWeapon* InitWeapon, float LifeSpan = 20.0f);
+	void InitWeaponPickup(class AWeapon* InitWeapon);
 	
 protected:
 	virtual void BeginPlay() override;

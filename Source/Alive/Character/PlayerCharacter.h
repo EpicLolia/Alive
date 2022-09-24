@@ -24,6 +24,7 @@ public:
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	UWeaponInventoryComponent* GetWeaponInventoryComponent() const { return InventoryComponent; }
+	USkeletalMeshComponent* GetWeaponMeshComponent() const { return WeaponMeshComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerCharacter")
 	class UAliveCharacterMovementComponent* GetAliveCharacterMovementComponent();
@@ -69,6 +70,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	UWeaponInventoryComponent* InventoryComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* WeaponMeshComponent;
 
 	// Should bind input while giving ability, TODO: Ability Level
 	virtual void AddCharacterAbilities() override final;

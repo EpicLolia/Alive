@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Weapon/AliveWeapon.h"
 #include "Weapon/ProjectileComponent.h"
+#include "Weapon/Weapon.h"
 
 FVector VRandConeNormalDistribution(const FVector& Dir, const float ConeHalfAngleDegrees, const float Exponent)
 {
@@ -82,13 +83,18 @@ void UAliveGameplayAbility_RangedWeapon::EndAbility(
 	}
 }
 
-AAliveWeapon* UAliveGameplayAbility_RangedWeapon::GetSourceWeapon() const
+AWeapon* UAliveGameplayAbility_RangedWeapon::GetSourceWeapon() const
 {
 	if (FGameplayAbilitySpec* Spec = UGameplayAbility::GetCurrentAbilitySpec())
 	{
-		return Cast<AAliveWeapon>(Spec->SourceObject);
+		return Cast<AWeapon>(Spec->SourceObject);
 	}
 	return nullptr;
+}
+
+const UWeaponType* UAliveGameplayAbility_RangedWeapon::GetWeaponType() const
+{
+	return GetSourceWeapon() ? GetSourceWeapon()->GetWeaponType() : nullptr;
 }
 
 void UAliveGameplayAbility_RangedWeapon::StartTargetingLocally()
@@ -109,7 +115,7 @@ void UAliveGameplayAbility_RangedWeapon::StartTargetingLocally()
 
 void UAliveGameplayAbility_RangedWeapon::GenerateProjectileTargetDataHandle(FGameplayAbilityTargetDataHandle& TargetDataHandle)
 {
-	for (int32 bullet = 0; bullet < GetSourceWeapon()->GetPrimaryCartridgeAmmo(); ++bullet)
+	for (int32 bullet = 0; bullet < GetWeaponType()->CartridgeAmmo; ++bullet)
 	{
 		TargetDataHandle.Add(GenerateProjectileTargetData());
 	}
@@ -123,7 +129,7 @@ FGameplayAbilityTargetData* UAliveGameplayAbility_RangedWeapon::GenerateProjecti
 
 	const FVector TraceStart = MyCharacter->GetCameraBoom()->GetComponentLocation();
 	const FVector TraceEnd = MyCharacter->GetBaseAimRotation().Vector() *
-		GetSourceWeapon()->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
+		GetWeaponType()->Range * 100.0f + TraceStart;
 
 	TArray<FHitResult> FoundHits;
 	TraceAndDrawDebug(/*out*/ FoundHits, TraceStart, TraceEnd);
@@ -131,11 +137,11 @@ FGameplayAbilityTargetData* UAliveGameplayAbility_RangedWeapon::GenerateProjecti
 
 
 	FVector AimDirAfterSpread = VRandConeNormalDistribution(
-		MyCharacter->GetBaseAimRotation().Vector(), GetSourceWeapon()->GetCurrentSpreadAngle() / 2.0f, 1.0f);
+		MyCharacter->GetBaseAimRotation().Vector(), 10.0f/*TODO:Spread*/ / 2.0f, 1.0f);
 	FVector TargetPoint;
 	if (ValidHitIndex == INDEX_NONE)
 	{
-		TargetPoint = AimDirAfterSpread * GetSourceWeapon()->GetProjectileComponent()->GetRange() * 100.0f + TraceStart;
+		TargetPoint = AimDirAfterSpread * GetWeaponType()->Range * 100.0f + TraceStart;
 	}
 	else
 	{
@@ -182,17 +188,18 @@ void UAliveGameplayAbility_RangedWeapon::FireProjectile(const FGameplayAbilityTa
 
 	if (CommitAbilityCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
 	{
-		GetSourceWeapon()->AddSpread();
-		
+		// TODO: Add spread Here
+		// GetSourceWeapon()->AddSpread();
+
 		// Only Handle Effect on the server.
 		if (GetCurrentActorInfo()->IsNetAuthority())
 		{
 			FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingGameplayEffectSpec(HitEffect, GetAbilityLevel());
 			EffectSpecHandle.Data->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Data.Damage")), HitDamageMultiplier);
-			ProjectileComp->GenerateProjectileHandle(TargetData.UniqueId,EffectSpecHandle,TargetData.Num());
+			ProjectileComp->GenerateProjectileHandle(TargetData.UniqueId, EffectSpecHandle, TargetData.Num());
 		}
 		// Only Generate ProjectileInstance locally.
-		if(CurrentActorInfo->IsLocallyControlled())
+		if (CurrentActorInfo->IsLocallyControlled())
 		{
 			for (const auto& Data : TargetData.Data)
 			{

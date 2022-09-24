@@ -21,18 +21,22 @@ class ALIVE_API AWeapon : public AActor
 
 	AWeapon();
 public:
-
-	UFUNCTION(BlueprintCallable,meta= (DefaultToSelf = GenerateInstigator))
+	UFUNCTION(BlueprintCallable, meta= (DefaultToSelf = GenerateInstigator))
 	static AWeapon* NewWeapon(const AActor* GenerateInstigator, TSubclassOf<UWeaponType> WeaponTypeClass, const FTransform& Transform);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaTime) override;
 
 	const UWeaponType* GetWeaponType() const { return WeaponType; }
-	
+
 	// Only called on the server.
 	void AddTo(AAliveCharacter* Character);
 	void DiscardFromOwner();
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetFirePointWorldLocation() const;
+
+	class UProjectileComponent* GetProjectileComponent() const { return ProjectileComponent; }
 
 	FWeaponPerformance GenerateWeaponPerformance() const;
 
@@ -46,8 +50,11 @@ public:
 
 protected:
 	/** Always the ClassDefaultObject */
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponType, BlueprintReadOnly)
 	const UWeaponType* WeaponType;
+	// On weapon type ready.
+	UFUNCTION()
+	void OnRep_WeaponType();
 
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentAmmo, BlueprintReadOnly)
 	int32 CurrentAmmo;
@@ -55,6 +62,9 @@ protected:
 	void OnRep_CurrentAmmo(int32 OldAmmo);
 
 private:
+	UPROPERTY()
+	class UProjectileComponent* ProjectileComponent;
+
 	// Record the skills given by this weapon. Only useful on the server because we should only add/remove with authority.
 	TArray<FGameplayAbilitySpecHandle> AbilitySpecHandles;
 

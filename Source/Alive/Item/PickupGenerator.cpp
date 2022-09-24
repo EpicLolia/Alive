@@ -17,7 +17,7 @@ APickupGenerator::APickupGenerator()
 	bNetLoadOnClient = false;
 	bLoop = true;
 	GenerateCooldown = 10.0f;
-	
+
 	GetCapsuleComponent()->InitCapsuleSize(40.0f, 60.0f);
 	GetCapsuleComponent()->SetShouldUpdatePhysicsVolume(false);
 
@@ -69,7 +69,7 @@ void APickupGenerator::BeginPlay()
 void APickupGenerator::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorld()->GetTimerManager().ClearTimer(NextPickupGenerateTimerHandle);
-	
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -77,14 +77,15 @@ void APickupGenerator::GeneratePickup()
 {
 	check(GetWorld()->GetFirstPlayerController()->HasAuthority());
 
-	
-	APickup* NewPickup = GetWorld()->SpawnActor<APickup>(PickupList[FMath::RandRange(0,PickupList.Num()-1)],GetTransform());
+
+	APickup* NewPickup = GetWorld()->SpawnActor<APickup>(PickupList[FMath::RandRange(0, PickupList.Num() - 1)], GetTransform());
 	bHasPickup = true;
 
-	if(bLoop)
+	if (bLoop)
 	{
-	NewPickup->OnPickUpOrTimeOut.BindUObject(this, &APickupGenerator::OnPickUpOrTimeOutEvent);
-	}else
+		NewPickup->OnPickUpOrTimeOut.BindUObject(this, &APickupGenerator::OnPickUpOrTimeOutEvent);
+	}
+	else
 	{
 		SetLifeSpan(0.1f);
 	}
@@ -92,6 +93,6 @@ void APickupGenerator::GeneratePickup()
 
 void APickupGenerator::OnPickUpOrTimeOutEvent()
 {
-	GetWorld()->GetTimerManager().SetTimer(NextPickupGenerateTimerHandle,this, &APickupGenerator::GeneratePickup,GenerateCooldown);
+	GetWorld()->GetTimerManager().SetTimer(NextPickupGenerateTimerHandle, this, &APickupGenerator::GeneratePickup, GenerateCooldown);
 	bHasPickup = false;
 }

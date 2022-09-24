@@ -23,7 +23,10 @@ public:
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 	//~End of UGameplayAbility interface
 
-	class AAliveWeapon* GetSourceWeapon() const;
+	UFUNCTION(BlueprintCallable)
+	class AWeapon* GetSourceWeapon() const;
+	UFUNCTION(BlueprintCallable)
+	const class UWeaponType* GetWeaponType() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly,Category = "Alive|Projectile")
