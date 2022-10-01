@@ -17,13 +17,30 @@ AWeapon::AWeapon()
 	//bOnlyRelevantToOwner = true;
 
 	ProjectileComponent = CreateDefaultSubobject<UProjectileComponent>(FName("ProjectileComponent"));
+
+	bUseProjectileActor = false;
+	SetActorTickInterval(1);
+}
+
+void AWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (bUseProjectileActor)
+	{
+		ProjectileComponent->SetActive(false);
+	}
+	else
+	{
+		ProjectileComponent->InitProjectileComponent();
+	}
 }
 
 AWeapon* AWeapon::NewWeapon(const AActor* GenerateInstigator, TSubclassOf<UWeaponType> WeaponTypeClass, const FTransform& Transform)
 {
 	check(GenerateInstigator);
 	check(GenerateInstigator->HasAuthority());
-	AWeapon* NewWeapon = GenerateInstigator->GetWorld()->SpawnActor<AWeapon>(AWeapon::StaticClass(),Transform);
+	AWeapon* NewWeapon = GenerateInstigator->GetWorld()->SpawnActor<AWeapon>(AWeapon::StaticClass(), Transform);
 	NewWeapon->SetWeaponType(WeaponTypeClass);
 	return NewWeapon;
 }
@@ -54,7 +71,8 @@ void AWeapon::DiscardFromOwner()
 FVector AWeapon::GetFirePointWorldLocation() const
 {
 	// TODO: 这块的逻辑不对，还是在weapon里维护一个mesh吧，把visibility作为变量同步，这样就可以解决断线重连的问题
-	return Cast<APlayerCharacter>(GetOwnerAsAliveCharacter())->GetWeaponMeshComponent()->GetSocketLocation(GetWeaponType()->FirePointSocket);
+	return Cast<APlayerCharacter>(GetOwnerAsAliveCharacter())->GetWeaponMeshComponent()->
+	                                                           GetSocketLocation(GetWeaponType()->FirePointSocket);
 }
 
 FWeaponPerformance AWeapon::GenerateWeaponPerformance() const
@@ -115,7 +133,7 @@ void AWeapon::GrantAbilitiesToOwner()
 	for (const TSubclassOf<UGameplayAbility>& Ability : WeaponType->AbilitiesGrantedToOwner)
 	{
 		AbilitySpecHandles.Add(GetOwnerAsAliveCharacter()->GetAbilitySystemComponent()->GiveAbility(
-			FGameplayAbilitySpec(Ability,1,INDEX_NONE,this)));
+			FGameplayAbilitySpec(Ability, 1, INDEX_NONE, this)));
 	}
 }
 

@@ -14,7 +14,8 @@ UProjectileComponent::UProjectileComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
-
+	SetAutoActivate(true);
+	
 	NetworkDelayTolerance = 200.0f;
 	NetworkFluctuationTolerance = 200.0f;
 	TargetMaximumVelocity = 6.0f;
